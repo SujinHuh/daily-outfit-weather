@@ -29,6 +29,8 @@ server:
 app:
   frontend:
     success-url: ${APP_FRONTEND_SUCCESS_URL:http://localhost:5173}
+  notification:
+    generate-due-token: ${APP_NOTIFICATION_GENERATE_DUE_TOKEN:}
 
 kma:
   service-key: ${KMA_SERVICE_KEY:}

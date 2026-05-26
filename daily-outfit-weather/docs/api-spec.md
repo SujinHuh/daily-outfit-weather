@@ -257,6 +257,15 @@ GET /api/notifications/today
 
 ```http
 POST /api/notifications/generate-due
+X-Internal-Job-Token: {internal-job-token}
+```
+
+Response:
+
+```json
+{
+  "generatedCount": 3
+}
 ```
 
 동작:
@@ -264,6 +273,7 @@ POST /api/notifications/generate-due
 - 현재 시각 기준으로 알림 시간이 지난 사용자 중 알림 옵션이 `OFF`가 아닌 사용자의 아침 알림 로그를 생성합니다.
 - 실제 푸시 발송은 하지 않고 `PENDING` 상태의 로그만 저장합니다.
 - 같은 사용자/알림 타입/예약 시각 조합은 중복 생성하지 않습니다.
+- 내부 작업용 토큰이 없거나 일치하지 않으면 `403 Forbidden`을 반환합니다.
 
 ## 에러 응답 형식
 
