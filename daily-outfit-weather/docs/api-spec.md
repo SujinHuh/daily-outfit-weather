@@ -202,6 +202,24 @@ Request:
 }
 ```
 
+Response:
+
+```json
+{
+  "id": 1,
+  "recommendationId": 10,
+  "temperatureFeedback": "COLD",
+  "rainFeedback": "NEEDED",
+  "comment": "퇴근길에 생각보다 추웠어요."
+}
+```
+
+주의:
+
+- `rainFeedback`은 `NEEDED`, `NOT_NEEDED` 중 하나를 사용합니다.
+- 같은 추천에 다시 피드백을 등록하면 기존 피드백을 갱신합니다.
+- 다른 사용자의 추천에는 피드백을 등록할 수 없습니다.
+
 ## Notification
 
 ### 알림 로그 조회
@@ -210,11 +228,42 @@ Request:
 GET /api/notifications
 ```
 
+Response:
+
+```json
+[
+  {
+    "id": 1,
+    "recommendationId": 10,
+    "notificationType": "MORNING_REGULAR",
+    "title": "오늘 뭐입지?",
+    "body": "오늘은 가볍게 입어요.",
+    "scheduledAt": "2026-05-25T22:30:00Z",
+    "sentAt": null,
+    "status": "PENDING",
+    "failureReason": null,
+    "createdAt": "2026-05-25T21:00:00Z"
+  }
+]
+```
+
 ### 오늘 알림 로그 조회
 
 ```http
 GET /api/notifications/today
 ```
+
+### 알림 로그 생성(MVP)
+
+```http
+POST /api/notifications/generate-due
+```
+
+동작:
+
+- 현재 시각 기준으로 알림 시간이 지난 사용자 중 알림 옵션이 `OFF`가 아닌 사용자의 아침 알림 로그를 생성합니다.
+- 실제 푸시 발송은 하지 않고 `PENDING` 상태의 로그만 저장합니다.
+- 같은 사용자/알림 타입/예약 시각 조합은 중복 생성하지 않습니다.
 
 ## 에러 응답 형식
 

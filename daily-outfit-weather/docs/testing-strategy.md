@@ -1,6 +1,6 @@
 # Testing Strategy
 
-테스트 전략 문서입니다. 현재는 프로젝트 골격 생성 전 초안이며, 구현 단계에서 보강합니다.
+테스트 전략 문서입니다.
 
 대표 테스트 전략 문서는 이 파일입니다. `docs/project/standards/testing_profile.md`는 Harness Kit overlay용 요약 표준 문서입니다.
 
@@ -37,13 +37,13 @@
 
 ## 프론트엔드 테스트
 
-초기 후보:
+초기 기준:
 
 - 빌드 검증
 - 핵심 컴포넌트 렌더링 테스트
 - 오늘 추천 화면 상태 테스트
 
-상세 테스트 도구는 프론트엔드 프로젝트 생성 후 확정합니다.
+Phase 1에서는 `npm run build`를 기본 검증으로 사용합니다. 컴포넌트 테스트 도구는 화면 기능 구현 단계에서 확장합니다.
 
 ## 외부 API 테스트 원칙
 
@@ -53,7 +53,7 @@
 
 ## Phase별 테스트 기준
 
-- Phase 1: 프로젝트 기본 테스트/빌드 통과
+- Phase 1: 백엔드 `./gradlew test`, 프론트엔드 `npm run build`, Docker Compose PostgreSQL 기동 확인
 - Phase 2: 도메인과 프로필 API 테스트
 - Phase 3: 추천 엔진 단위 테스트
 - Phase 4: 오늘 추천 API 통합 테스트

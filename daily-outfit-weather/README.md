@@ -64,11 +64,12 @@ MVP 최종 포함 기능을 한 번에 모두 구현하지 않습니다. 실제 
 | 영역 | 기술 |
 | --- | --- |
 | Frontend | React, Vite, TypeScript, PWA |
-| Backend | Java, Spring Boot, Spring Security, Spring Data JPA |
+| Backend | Java 21, Spring Boot 3.x, Spring Security, Spring Data JPA |
 | Database | PostgreSQL |
+| Test DB | Testcontainers PostgreSQL |
 | Auth | Google OAuth |
 | Weather | 기상청 단기예보 API |
-| Process | Harness Kit |
+| Process | Harness Kit partial overlay |
 
 ## 예상 구조
 
@@ -77,7 +78,9 @@ daily-outfit-weather
 ├── backend
 │   └── Spring Boot application
 ├── frontend
-│   └── React + Vite + PWA application
+│   └── React + Vite + TypeScript application
+├── docker-compose.yml
+├── .env.example
 ├── docs
 │   ├── product-requirements.md
 │   ├── screen-flow.md
@@ -164,11 +167,12 @@ daily-outfit-weather
 - 첫 작업 문서 초안 작성 완료
 - 핵심 bootstrap 결정 정리 완료
 - Harness Kit overlay는 MVP bootstrap 동안 partial overlay 유지로 결정
+- Spring Boot 백엔드 골격 구성 및 기본 검증 완료
+- React + Vite 프론트엔드 골격 구성 및 빌드 검증 완료
+- PostgreSQL Docker Compose 구성 및 기동 검증 완료
 
 ## 다음 단계
 
-1. Spring Boot 백엔드 프로젝트 생성
-2. React + Vite 프론트엔드 프로젝트 생성
-3. PostgreSQL Docker Compose 구성
-4. `.env.example` 작성
-5. 로컬 실행 문서 보강
+1. Phase 1 변경사항 커밋 및 PR 생성
+2. Phase 2 사용자/프로필/위치 기본 도메인 작업 브랜치 생성
+3. 온보딩 저장/조회 API 구현

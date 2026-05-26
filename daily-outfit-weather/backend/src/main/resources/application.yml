@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: daily-outfit-weather-backend
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/daily_outfit_weather}
+    username: ${POSTGRES_USER:daily_outfit_weather}
+    password: ${POSTGRES_PASSWORD:daily_outfit_weather}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:dev-google-client-id}
+            client-secret: ${GOOGLE_CLIENT_SECRET:dev-google-client-secret}
+            scope:
+              - email
+              - profile
+
+server:
+  port: ${SERVER_PORT:8080}
+
+app:
+  frontend:
+    success-url: ${APP_FRONTEND_SUCCESS_URL:http://localhost:5173}
+
+kma:
+  service-key: ${KMA_SERVICE_KEY:}
+  base-url: ${KMA_BASE_URL:http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0}
+  connect-timeout: ${KMA_CONNECT_TIMEOUT:2s}
+  read-timeout: ${KMA_READ_TIMEOUT:3s}

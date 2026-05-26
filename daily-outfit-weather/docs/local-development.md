@@ -1,10 +1,10 @@
 # Local Development
 
-로컬 개발 환경 문서입니다. 현재는 프로젝트 골격 생성 전 초안이며, `001_project_bootstrap` 작업에서 실제 명령으로 보강합니다.
+로컬 개발 환경 문서입니다.
 
-## 예정 구성
+## 구성
 
-- Backend: Spring Boot
+- Backend: Spring Boot 3.x
 - Build Tool: Gradle
 - Frontend: React + Vite + TypeScript
 - Database: PostgreSQL Docker Compose
@@ -29,9 +29,15 @@ node -v
 
 `node -v`는 `v24.x.x`가 나와야 합니다.
 
-## 환경변수
+`nvm`을 사용하지 않는 환경에서는 Homebrew의 `node@24`를 사용할 수 있습니다.
 
-`.env.example` 생성 후 이 문서를 업데이트합니다.
+```bash
+brew install node@24
+export PATH="/opt/homebrew/opt/node@24/bin:$PATH"
+node -v
+```
+
+## 환경변수
 
 기본값:
 
@@ -41,6 +47,7 @@ POSTGRES_USER=daily_outfit_weather
 POSTGRES_PASSWORD=daily_outfit_weather
 POSTGRES_PORT=5432
 DATABASE_URL=jdbc:postgresql://localhost:5432/daily_outfit_weather
+SERVER_PORT=8080
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 KMA_SERVICE_KEY=
@@ -48,11 +55,9 @@ KMA_SERVICE_KEY=
 
 ## 실행 명령
 
-Phase 1 bootstrap 완료 전까지는 아래 명령을 목표 실행 명령으로 둡니다.
-구현 후 실제 동작 여부를 검증하고 이 문서를 갱신합니다.
-
 ```bash
 # database
+cp .env.example .env
 docker compose up -d
 
 # backend
@@ -61,13 +66,11 @@ cd backend
 
 # frontend
 cd frontend
+npm install
 npm run dev
 ```
 
 ## 검증 명령
-
-Phase 1 bootstrap 완료 전까지는 아래 명령을 목표 검증 명령으로 둡니다.
-구현 후 실제 동작 여부를 검증하고 이 문서를 갱신합니다.
 
 ```bash
 cd backend
@@ -76,3 +79,9 @@ cd backend
 cd frontend
 npm run build
 ```
+
+## 현재 주의사항
+
+- Node.js는 `.nvmrc` 기준 Node.js 24를 사용합니다.
+- 현재 작업 환경이 Node.js 24가 아니면 frontend build가 실패할 수 있습니다.
+- DB 통합 테스트는 Testcontainers PostgreSQL을 기준으로 확장합니다.

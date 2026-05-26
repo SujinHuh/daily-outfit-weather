@@ -35,10 +35,10 @@
 - Harness Kit partial overlay 운영 기준 정리 완료
 - `001_project_bootstrap` task workspace 구성 완료
 - Node.js 24 LTS 기준 고정
+- `feature/bootstrap-project-foundation` 브랜치에서 Phase 1 bootstrap 검증 완료
 
 ## 다음 단계
 
-1. Spring Boot 백엔드 프로젝트 생성
-2. React + Vite 프론트엔드 프로젝트 생성
-3. PostgreSQL Docker Compose 구성
-4. 로컬 실행 및 검증 문서 갱신
+1. Phase 1 변경사항 커밋 및 PR 생성
+2. Phase 2 사용자/프로필/위치 기본 도메인 작업 브랜치 생성
+3. 온보딩 저장/조회 API 구현
