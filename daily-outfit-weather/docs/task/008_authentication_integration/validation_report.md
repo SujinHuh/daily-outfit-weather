@@ -25,3 +25,9 @@
 
 - CSRF는 MVP 개발 편의를 위해 아직 비활성화되어 있다. 세션 쿠키 기반 운영 배포 전에는 CSRF 토큰, SameSite, CORS, 배포 origin 정책을 확정해야 한다.
 - 실제 Google OAuth2 로그인은 브라우저에서 Google Client 설정과 함께 별도 smoke test가 필요하다.
+
+## 2026-05-26 Smoke Test 시도
+
+- `.env` 파일이 없어 `GOOGLE_CLIENT_ID`와 `GOOGLE_CLIENT_SECRET` 설정 여부를 확인할 수 없었다.
+- Docker daemon이 실행 중이 아니어서 로컬 PostgreSQL/Testcontainers 기반 서버 실행 검증을 진행할 수 없었다.
+- 실제 Google OAuth 브라우저 smoke test는 [Security Deployment Policy](../../security-deployment-policy.md)의 조건을 준비한 뒤 재실행한다.
