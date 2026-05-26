@@ -74,20 +74,17 @@ public class NotificationLogService {
 		return userProfileRepository
 			.findByNotificationTimeLessThanEqualAndChangeAlertOptionNot(currentTime, ChangeAlertOption.OFF)
 			.stream()
-			.filter(profile -> !alreadyLogged(profile, targetDate))
-			.map(profile -> notificationLogRepository.save(createLog(profile, targetDate)))
+			.map(profile -> createLogIfAbsent(profile, targetDate))
+			.flatMap(List::stream)
 			.toList();
 	}
 
-	private boolean alreadyLogged(UserProfile profile, LocalDate targetDate) {
-		return notificationLogRepository.existsByUserIdAndNotificationTypeAndScheduledAt(
-			profile.getUser().getId(),
-			NotificationType.MORNING_REGULAR,
-			scheduledAt(profile, targetDate)
-		);
+	@Transactional
+	public int generateDueLogCount() {
+		return generateDueLogs().size();
 	}
 
-	private NotificationLog createLog(UserProfile profile, LocalDate targetDate) {
+	private List<NotificationLog> createLogIfAbsent(UserProfile profile, LocalDate targetDate) {
 		User user = profile.getUser();
 		OutfitRecommendation recommendation = outfitRecommendationRepository
 			.findByUserIdAndTargetDate(user.getId(), targetDate)
@@ -96,14 +93,22 @@ public class NotificationLogService {
 		String body = recommendation == null
 			? "오늘 추천을 확인할 시간입니다."
 			: recommendation.getSummaryMessage();
-		return new NotificationLog(
-			user,
-			recommendation,
-			NotificationType.MORNING_REGULAR,
+		Instant scheduledAt = scheduledAt(profile, targetDate);
+		int inserted = notificationLogRepository.insertPendingLogIfAbsent(
+			user.getId(),
+			recommendation == null ? null : recommendation.getId(),
+			NotificationType.MORNING_REGULAR.name(),
 			title,
 			body,
-			scheduledAt(profile, targetDate)
+			scheduledAt
 		);
+		if (inserted == 0) {
+			return List.of();
+		}
+		return notificationLogRepository
+			.findByUserIdAndNotificationTypeAndScheduledAt(user.getId(), NotificationType.MORNING_REGULAR, scheduledAt)
+			.map(List::of)
+			.orElseGet(List::of);
 	}
 
 	private Instant scheduledAt(UserProfile profile, LocalDate targetDate) {

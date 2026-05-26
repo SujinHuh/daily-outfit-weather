@@ -1,13 +1,18 @@
 package com.dailyoutfitweather.notification.controller;
 
-import java.util.List;
-
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
 
 import com.dailyoutfitweather.global.security.LoginUser;
+import com.dailyoutfitweather.notification.dto.GenerateDueNotificationLogsResponse;
 import com.dailyoutfitweather.notification.dto.NotificationLogResponse;
 import com.dailyoutfitweather.notification.service.NotificationLogService;
 import com.dailyoutfitweather.user.domain.User;
@@ -17,9 +22,14 @@ import com.dailyoutfitweather.user.domain.User;
 public class NotificationController {
 
 	private final NotificationLogService notificationLogService;
+	private final String generateDueToken;
 
-	public NotificationController(NotificationLogService notificationLogService) {
+	public NotificationController(
+		NotificationLogService notificationLogService,
+		@Value("${app.notification.generate-due-token}") String generateDueToken
+	) {
 		this.notificationLogService = notificationLogService;
+		this.generateDueToken = generateDueToken;
 	}
 
 	@GetMapping
@@ -33,7 +43,12 @@ public class NotificationController {
 	}
 
 	@PostMapping("/generate-due")
-	List<NotificationLogResponse> generateDueLogs() {
-		return notificationLogService.generateDueLogs();
+	GenerateDueNotificationLogsResponse generateDueLogs(
+		@RequestHeader(value = "X-Internal-Job-Token", required = false) String internalJobToken
+	) {
+		if (generateDueToken.isBlank() || !generateDueToken.equals(internalJobToken)) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "알림 로그 생성 권한이 없습니다.");
+		}
+		return new GenerateDueNotificationLogsResponse(notificationLogService.generateDueLogCount());
 	}
 }
