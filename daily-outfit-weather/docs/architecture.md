@@ -206,6 +206,7 @@ src
 - 사용자별 데이터 접근 제한
 - 다른 사용자의 프로필/추천/피드백 조회 불가
 - 민감정보는 MVP에서 저장하지 않음
+- 운영 배포 전 CSRF/CORS/cookie 기준은 [Security Deployment Policy](./security-deployment-policy.md)를 따른다.
 
 확장성:
 
