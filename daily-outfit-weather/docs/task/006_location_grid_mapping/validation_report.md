@@ -24,4 +24,4 @@ cd backend
 
 ## 남은 리스크
 
-- 현재 catalog는 MVP용 부분 데이터다. 실제 서비스 전에는 전국 행정동 좌표 데이터로 확장해야 한다.
+- 현재 catalog는 MVP용 부분 데이터다. 실제 서비스 전에는 `docs/kma-service-area.md`의 지원 범위로 위치 선택을 제한하거나, 서비스 claims에 맞춰 catalog를 확장해야 한다.
