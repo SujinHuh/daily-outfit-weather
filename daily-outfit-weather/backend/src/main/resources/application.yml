@@ -26,6 +26,10 @@ spring:
 server:
   port: ${SERVER_PORT:8080}
 
+logging:
+  file:
+    name: ${LOG_FILE:logs/backend.log}
+
 app:
   frontend:
     success-url: ${APP_FRONTEND_SUCCESS_URL:http://localhost:5173}

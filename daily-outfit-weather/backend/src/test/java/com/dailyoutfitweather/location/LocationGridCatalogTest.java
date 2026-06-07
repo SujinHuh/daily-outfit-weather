@@ -29,4 +29,17 @@ class LocationGridCatalogTest {
 			.extracting(LocationGrid::dong)
 			.contains("판교동");
 	}
+
+	@Test
+	void searchesSoutheastSeoulNeighborhoodsByDongKeyword() {
+		assertThat(catalog.search("성내"))
+			.extracting(LocationGrid::dong)
+			.containsExactly("성내1동", "성내2동", "성내3동");
+		assertThat(catalog.search("둔촌"))
+			.extracting(LocationGrid::dong)
+			.containsExactly("둔촌1동", "둔촌2동");
+		assertThat(catalog.search("잠실"))
+			.extracting(LocationGrid::dong)
+			.containsExactly("잠실본동", "잠실2동", "잠실3동", "잠실4동", "잠실6동", "잠실7동");
+	}
 }

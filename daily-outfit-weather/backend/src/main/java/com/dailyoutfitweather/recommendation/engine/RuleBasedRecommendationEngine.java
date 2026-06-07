@@ -33,7 +33,7 @@ public class RuleBasedRecommendationEngine {
 	public RecommendationResult recommend(RecommendationInput input) {
 		AnalyzedWeatherCondition condition = weatherConditionAnalyzer.analyze(input);
 		int recommendationTemperature = recommendationRuleEngine.calculateRecommendationTemperature(input, condition);
-		OutfitRecommendation outfit = outfitSelector.select(recommendationTemperature);
+		OutfitRecommendation outfit = outfitSelector.select(recommendationTemperature, condition.strongWind());
 		List<String> items = itemSelector.select(condition);
 		return new RecommendationResult(
 			recommendationTemperature,
@@ -41,7 +41,7 @@ public class RuleBasedRecommendationEngine {
 			outfit.outerRecommendation(),
 			String.join(", ", items),
 			items,
-			messageGenerator.generate(input.messageTone(), outfit, items, condition),
+			messageGenerator.generate(condition, recommendationTemperature),
 			messageGenerator.reason(condition, recommendationTemperature),
 			outfit.characterImageType()
 		);

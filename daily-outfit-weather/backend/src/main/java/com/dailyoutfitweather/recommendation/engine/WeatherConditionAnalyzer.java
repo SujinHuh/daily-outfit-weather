@@ -16,6 +16,7 @@ public class WeatherConditionAnalyzer {
 		WeatherSnapshot commute = input.commuteWeather();
 		WeatherSnapshot leaveWork = input.leaveWorkWeather();
 		int minFeelsLikeTemperature = Math.min(commute.feelsLikeTemperature(), leaveWork.feelsLikeTemperature());
+		int maxFeelsLikeTemperature = Math.max(commute.feelsLikeTemperature(), leaveWork.feelsLikeTemperature());
 		int maxRainProbability = Math.max(commute.rainProbability(), leaveWork.rainProbability());
 		boolean snowExpected = hasPrecipitation(commute, PrecipitationType.SNOW)
 			|| hasPrecipitation(leaveWork, PrecipitationType.SNOW);
@@ -30,6 +31,7 @@ public class WeatherConditionAnalyzer {
 		return new AnalyzedWeatherCondition(
 			commute.feelsLikeTemperature(),
 			minFeelsLikeTemperature,
+			maxFeelsLikeTemperature,
 			maxRainProbability,
 			rainExpected,
 			leaveWorkRainExpected,

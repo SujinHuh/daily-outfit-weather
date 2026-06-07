@@ -8,6 +8,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class ItemSelector {
 
+	private static final int MAX_RECOMMENDATION_COUNT = 3;
+
 	public List<String> select(AnalyzedWeatherCondition condition) {
 		List<String> items = new ArrayList<>();
 		if (condition.snowExpected()) {
@@ -19,6 +21,12 @@ public class ItemSelector {
 		if (condition.strongWind()) {
 			items.add("바람막이");
 		}
-		return List.copyOf(items);
+		if (condition.maxFeelsLikeTemperature() >= 31) {
+			items.add("손선풍기");
+		}
+		if (condition.maxFeelsLikeTemperature() >= 28) {
+			items.add("물");
+		}
+		return items.stream().limit(MAX_RECOMMENDATION_COUNT).toList();
 	}
 }

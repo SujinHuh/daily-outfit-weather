@@ -1,29 +1,48 @@
 package com.dailyoutfitweather.recommendation.engine;
 
-import java.util.List;
-
 import org.springframework.stereotype.Component;
-
-import com.dailyoutfitweather.user.domain.MessageTone;
 
 @Component
 public class RecommendationMessageGenerator {
 
 	public String generate(
-		MessageTone messageTone,
-		OutfitRecommendation outfit,
-		List<String> items,
-		AnalyzedWeatherCondition condition
+		AnalyzedWeatherCondition condition,
+		int recommendationTemperature
 	) {
-		String itemMessage = items.isEmpty() ? "" : " 준비물은 " + String.join(", ", items) + "을 챙기세요.";
-		return switch (messageTone) {
-			case CHARACTER -> "오늘 날씨에 맞춰 " + outfit.topRecommendation() + "에 " + outfit.outerRecommendation()
-				+ " 조합이 좋아요." + itemMessage;
-			case FRIENDLY -> "오늘은 " + outfit.topRecommendation() + "와 " + outfit.outerRecommendation()
-				+ "로 편하게 입어보세요." + itemMessage;
-			case PRACTICAL -> "권장 복장은 " + outfit.topRecommendation() + ", " + outfit.outerRecommendation()
-				+ "입니다." + itemMessage;
-		};
+		if (condition.snowExpected()) {
+			return "눈이 와요. 따뜻하게 입어요.";
+		}
+		if (condition.rainExpected()) {
+			return "비가 와요. 비에 젖지 않게 가볍게 입어요.";
+		}
+		if (condition.strongWind()) {
+			return "바람이 많이 불어요. 바람막이를 챙겨요.";
+		}
+		if (recommendationTemperature >= 31) {
+			return "많이 더워요. 시원한 반팔티로 입어요.";
+		}
+		if (recommendationTemperature >= 28) {
+			return "더워요. 반팔티로 가볍게 입어요.";
+		}
+		if (recommendationTemperature >= 24) {
+			return "따뜻해요. 반팔티에 얇은 남방으로 입어요.";
+		}
+		if (recommendationTemperature >= 21) {
+			return "선선해요. 얇은 긴팔티로 입어요.";
+		}
+		if (recommendationTemperature >= 18) {
+			return "조금 쌀쌀해요. 긴팔티에 가디건을 챙겨요.";
+		}
+		if (recommendationTemperature >= 12) {
+			return "쌀쌀해요. 니트에 바람막이 또는 자켓을 챙겨요.";
+		}
+		if (recommendationTemperature >= 8) {
+			return "추워요. 긴팔 이너에 코트 또는 두꺼운 가디건을 챙겨요.";
+		}
+		if (recommendationTemperature >= 4) {
+			return "많이 추워요. 따뜻한 니트에 패딩 또는 두꺼운 코트를 챙겨요.";
+		}
+		return "매우 추워요. 기모 이너와 두꺼운 패딩으로 입어요.";
 	}
 
 	public String reason(AnalyzedWeatherCondition condition, int recommendationTemperature) {
@@ -40,6 +59,11 @@ public class RecommendationMessageGenerator {
 		}
 		if (condition.snowExpected()) {
 			builder.append(" 눈 예보를 반영했습니다.");
+		}
+		if (condition.maxFeelsLikeTemperature() >= 31) {
+			builder.append(" 많이 더워 땀이 날 수 있으니 수분을 자주 보충하세요.");
+		} else if (condition.maxFeelsLikeTemperature() >= 28) {
+			builder.append(" 더운 시간대에는 수분을 챙기세요.");
 		}
 		return builder.toString();
 	}

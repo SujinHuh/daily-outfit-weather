@@ -41,7 +41,40 @@ class RuleBasedRecommendationEngineTest {
 
 		assertThat(result.recommendationTemperature()).isGreaterThanOrEqualTo(28);
 		assertThat(result.topRecommendation()).contains("반팔");
-		assertThat(result.itemRecommendations()).isEmpty();
+		assertThat(result.itemRecommendations()).containsExactly("물");
+	}
+
+	@Test
+	void recommendPortableFanAndWaterForVeryHotDay() {
+		RecommendationResult result = engine.recommend(input(
+			weather(33, 33, 10, PrecipitationType.NONE, 1.0),
+			weather(31, 31, 10, PrecipitationType.NONE, 1.0),
+			2,
+			2,
+			TransportType.PUBLIC_TRANSPORT,
+			MessageTone.FRIENDLY
+		));
+
+		assertThat(result.topRecommendation()).contains("반팔티");
+		assertThat(result.itemRecommendations()).containsExactly("손선풍기", "물");
+		assertThat(result.reason()).contains("땀이 날 수 있으니");
+		assertThat(result.summaryMessage()).isEqualTo("많이 더워요. 시원한 반팔티로 입어요.");
+	}
+
+	@Test
+	void preferWindbreakerForMildWindyDay() {
+		RecommendationResult result = engine.recommend(input(
+			weather(24, 24, 10, PrecipitationType.NONE, 4.5),
+			weather(24, 24, 10, PrecipitationType.NONE, 4.2),
+			2,
+			2,
+			TransportType.PUBLIC_TRANSPORT,
+			MessageTone.PRACTICAL
+		));
+
+		assertThat(result.topRecommendation()).contains("긴팔티");
+		assertThat(result.outerRecommendation()).contains("바람막이");
+		assertThat(result.itemRecommendations()).containsExactly("바람막이");
 	}
 
 	@Test
@@ -74,7 +107,7 @@ class RuleBasedRecommendationEngineTest {
 
 		assertThat(result.itemRecommendations()).contains("작은 우산");
 		assertThat(result.itemRecommendation()).isEqualTo("작은 우산");
-		assertThat(result.summaryMessage()).contains("작은 우산");
+		assertThat(result.summaryMessage()).isEqualTo("비가 와요. 비에 젖지 않게 가볍게 입어요.");
 	}
 
 	@Test
@@ -168,7 +201,7 @@ class RuleBasedRecommendationEngineTest {
 	}
 
 	@Test
-	void changeMessageByTone() {
+	void keepMainMessageConciseRegardlessOfTone() {
 		RecommendationInput baseInput = input(
 			weather(18, 18, 10, PrecipitationType.NONE, 1.0),
 			weather(18, 18, 10, PrecipitationType.NONE, 1.0),
@@ -188,8 +221,8 @@ class RuleBasedRecommendationEngineTest {
 			MessageTone.PRACTICAL
 		)).summaryMessage();
 
-		assertThat(characterMessage).isNotEqualTo(practicalMessage);
-		assertThat(practicalMessage).startsWith("권장 복장");
+		assertThat(characterMessage).isEqualTo("조금 쌀쌀해요. 긴팔티에 가디건을 챙겨요.");
+		assertThat(practicalMessage).isEqualTo(characterMessage);
 	}
 
 	private RecommendationInput input(

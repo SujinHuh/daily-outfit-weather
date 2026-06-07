@@ -9,6 +9,8 @@ lerna-debug.log*
 
 node_modules
 dist
+public/mascot/source/
+public/open-peeps-preview/
 dist-ssr
 *.local
 

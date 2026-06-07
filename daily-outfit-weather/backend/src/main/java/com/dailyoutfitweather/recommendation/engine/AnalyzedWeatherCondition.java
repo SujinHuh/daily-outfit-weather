@@ -5,6 +5,7 @@ import com.dailyoutfitweather.recommendation.dto.PrecipitationType;
 record AnalyzedWeatherCondition(
 	int baseFeelsLikeTemperature,
 	int minFeelsLikeTemperature,
+	int maxFeelsLikeTemperature,
 	int maxRainProbability,
 	boolean rainExpected,
 	boolean leaveWorkRainExpected,

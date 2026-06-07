@@ -5,18 +5,21 @@ import org.springframework.stereotype.Component;
 @Component
 public class OutfitSelector {
 
-	public OutfitRecommendation select(int recommendationTemperature) {
+	public OutfitRecommendation select(int recommendationTemperature, boolean strongWind) {
+		if (recommendationTemperature >= 31) {
+			return new OutfitRecommendation("시원한 반팔티", "통기성 좋은 얇은 하의", "HOT_LIGHT");
+		}
 		if (recommendationTemperature >= 28) {
-			return new OutfitRecommendation("반팔", "얇은 하의", "HOT_LIGHT");
+			return new OutfitRecommendation("반팔티", "얇은 하의", "HOT_LIGHT");
 		}
-		if (recommendationTemperature >= 23) {
-			return new OutfitRecommendation("반팔 또는 얇은 셔츠", "가벼운 하의", "WARM_LIGHT");
+		if (recommendationTemperature >= 24) {
+			return new OutfitRecommendation("반팔티", strongWind ? "얇은 바람막이" : "얇은 남방", "WARM_LIGHT");
 		}
-		if (recommendationTemperature >= 20) {
-			return new OutfitRecommendation("얇은 긴팔", "셔츠", "MILD_LONG_SLEEVE");
+		if (recommendationTemperature >= 21) {
+			return new OutfitRecommendation("얇은 긴팔티", strongWind ? "얇은 바람막이" : "얇은 남방", "MILD_LONG_SLEEVE");
 		}
-		if (recommendationTemperature >= 17) {
-			return new OutfitRecommendation("얇은 니트", "가디건", "COOL_CARDIGAN");
+		if (recommendationTemperature >= 18) {
+			return new OutfitRecommendation("긴팔티", strongWind ? "바람막이" : "가디건", "COOL_CARDIGAN");
 		}
 		if (recommendationTemperature >= 12) {
 			return new OutfitRecommendation("니트", "바람막이 또는 자켓", "WINDY_LIGHT_OUTER");
