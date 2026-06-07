@@ -5,9 +5,10 @@
 ## 현재 상태
 
 - 인증은 Spring Security OAuth2 Login과 서버 세션 쿠키를 사용한다.
-- MVP 개발 편의상 CSRF 보호는 `SecurityConfig`에서 비활성화되어 있다.
+- CSRF 보호는 `XSRF-TOKEN` 쿠키와 `X-XSRF-TOKEN` 헤더 방식으로 활성화되어 있다.
 - 프론트엔드 개발 서버는 Vite proxy로 `/api`, `/oauth2`, `/login` 요청을 백엔드로 전달한다.
 - 알림 로그 생성용 `POST /api/notifications/generate-due`는 내부 작업 토큰 `X-Internal-Job-Token`으로 보호한다.
+- 운영 same-origin 배포는 `frontend/nginx.conf`와 `docker-compose.prod.yml` 기준으로 구성한다.
 
 ## 운영 전 필수 정책
 
@@ -55,8 +56,10 @@
 - 온보딩/오늘 추천/피드백 요청이 401 없이 동작한다.
 - 로그아웃 후 보호 API가 401을 반환한다.
 
-## 2026-05-26 로컬 확인 결과
+## 2026-06-07 로컬 확인 결과
 
-- `.env` 파일이 없어 실제 Google OAuth Client ID/Secret 확인을 진행할 수 없었다.
-- Docker daemon이 실행 중이 아니어서 PostgreSQL/Testcontainers 기반 smoke test를 진행할 수 없었다.
-- 따라서 실제 Google OAuth 브라우저 smoke test는 환경 준비 후 재실행해야 한다.
+- Docker/Testcontainers 기반 백엔드 전체 테스트가 통과했다.
+- `.env` 기반 백엔드 부팅, PostgreSQL/Flyway 연결, `/api/health` 응답을 확인했다.
+- Google OAuth redirect가 Google 인증 URL로 302 이동하는 것을 확인했다.
+- KMA live API가 `NORMAL_SERVICE`를 반환하는 것을 확인했다.
+- 브라우저 기반 최종 OAuth 로그인 완료 flow는 운영 도메인 redirect URI 등록 후 재검증해야 한다.

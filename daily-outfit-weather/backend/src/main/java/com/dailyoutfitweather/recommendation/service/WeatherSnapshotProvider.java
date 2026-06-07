@@ -6,6 +6,7 @@ import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.dailyoutfitweather.recommendation.dto.PrecipitationType;
@@ -26,11 +27,18 @@ public class WeatherSnapshotProvider {
 	private final LocationRepository locationRepository;
 	private final WeatherApiClient weatherApiClient;
 	private final Clock clock;
+	private final boolean fallbackEnabled;
 
-	public WeatherSnapshotProvider(LocationRepository locationRepository, WeatherApiClient weatherApiClient, Clock clock) {
+	public WeatherSnapshotProvider(
+		LocationRepository locationRepository,
+		WeatherApiClient weatherApiClient,
+		Clock clock,
+		@Value("${app.weather.fallback-enabled:true}") boolean fallbackEnabled
+	) {
 		this.locationRepository = locationRepository;
 		this.weatherApiClient = weatherApiClient;
 		this.clock = clock;
+		this.fallbackEnabled = fallbackEnabled;
 	}
 
 	public WeatherSnapshots getTodayWeather(User user, UserProfile profile) {
@@ -55,6 +63,9 @@ public class WeatherSnapshotProvider {
 			return weatherApiClient.getForecast(location.getNx(), location.getNy(), targetDate, targetTime);
 		}
 		catch (WeatherApiException exception) {
+			if (!fallbackEnabled) {
+				throw exception;
+			}
 			log.warn("Falling back to default weather for locationType={} targetDate={} targetTime={}: {}",
 				locationType, targetDate, targetTime, exception.getMessage());
 			return defaultWeather;

@@ -2,6 +2,7 @@ package com.dailyoutfitweather.recommendation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
@@ -53,7 +54,7 @@ class WeatherSnapshotProviderTest {
 
 	@BeforeEach
 	void setUp() {
-		provider = new WeatherSnapshotProvider(locationRepository, weatherApiClient, clock);
+		provider = new WeatherSnapshotProvider(locationRepository, weatherApiClient, clock, true);
 		user = new User("dev-user@daily-outfit-weather.local", "수진", AuthProvider.DEV, "dev-user");
 		profile = new UserProfile(user);
 		profile.update(
@@ -66,6 +67,17 @@ class WeatherSnapshotProviderTest {
 			MessageTone.CHARACTER,
 			ChangeAlertOption.IMPORTANT_ONLY
 		);
+	}
+
+	@Test
+	void throwsWhenFallbackIsDisabledAndGridCoordinateIsMissing() {
+		WeatherSnapshotProvider strictProvider = new WeatherSnapshotProvider(locationRepository, weatherApiClient, clock, false);
+		when(locationRepository.findByUserIdAndType(user.getId(), LocationType.HOME))
+			.thenReturn(Optional.of(new Location(user, LocationType.HOME, "서울특별시", "강남구", "역삼동", null, null)));
+
+		assertThatThrownBy(() -> strictProvider.getTodayWeather(user, profile))
+			.isInstanceOf(WeatherApiException.class)
+			.hasMessageContaining("Location grid is missing");
 	}
 
 	@Test

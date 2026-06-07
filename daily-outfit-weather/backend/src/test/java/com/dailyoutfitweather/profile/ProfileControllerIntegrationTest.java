@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oauth2Login;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,7 +52,7 @@ class ProfileControllerIntegrationTest {
 
 	@Test
 	void saveOnboardingAndReadProfile() throws Exception {
-		mockMvc.perform(post("/api/profile/onboarding").with(loginUser())
+		mockMvc.perform(post("/api/profile/onboarding").with(loginUser()).with(csrf())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(profileRequest("수진", "역삼동", "성수동")))
 			.andExpect(status().isOk())
@@ -71,12 +72,12 @@ class ProfileControllerIntegrationTest {
 
 	@Test
 	void updateProfileReplacesLocationsPerType() throws Exception {
-		mockMvc.perform(post("/api/profile/onboarding").with(loginUser())
+		mockMvc.perform(post("/api/profile/onboarding").with(loginUser()).with(csrf())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(profileRequest("수진", "역삼동", "성수동")))
 			.andExpect(status().isOk());
 
-		mockMvc.perform(put("/api/profile").with(loginUser())
+		mockMvc.perform(put("/api/profile").with(loginUser()).with(csrf())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(profileRequest("변경", "서초동", "판교동")))
 			.andExpect(status().isOk())
@@ -112,7 +113,7 @@ class ProfileControllerIntegrationTest {
 		String request = profileRequest("수진", "역삼동", "성수동")
 			.replace("\"coldSensitivity\": 4", "\"coldSensitivity\": 6");
 
-		mockMvc.perform(post("/api/profile/onboarding").with(loginUser())
+		mockMvc.perform(post("/api/profile/onboarding").with(loginUser()).with(csrf())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(request))
 			.andExpect(status().isBadRequest())
@@ -123,7 +124,7 @@ class ProfileControllerIntegrationTest {
 	void rejectOverlongNicknameBeforePersistence() throws Exception {
 		String request = profileRequest("가".repeat(51), "역삼동", "성수동");
 
-		mockMvc.perform(post("/api/profile/onboarding").with(loginUser())
+		mockMvc.perform(post("/api/profile/onboarding").with(loginUser()).with(csrf())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(request))
 			.andExpect(status().isBadRequest())
@@ -140,7 +141,7 @@ class ProfileControllerIntegrationTest {
 
 	@Test
 	void updateProfileBeforeOnboardingReturnsNotFound() throws Exception {
-		mockMvc.perform(put("/api/profile").with(loginUser())
+		mockMvc.perform(put("/api/profile").with(loginUser()).with(csrf())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(profileRequest("수진", "역삼동", "성수동")))
 			.andExpect(status().isNotFound())

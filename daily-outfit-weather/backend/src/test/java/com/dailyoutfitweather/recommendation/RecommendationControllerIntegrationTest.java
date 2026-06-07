@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oauth2Login;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
 import java.time.LocalDate;
 
@@ -77,10 +78,10 @@ class RecommendationControllerIntegrationTest {
 	void postTodayRecommendationReturnsExistingRecommendationWhenAlreadyCreated() throws Exception {
 		saveOnboarding();
 
-		MvcResult first = mockMvc.perform(post("/api/recommendations/today").with(loginUser()))
+		MvcResult first = mockMvc.perform(post("/api/recommendations/today").with(loginUser()).with(csrf()))
 			.andExpect(status().isOk())
 			.andReturn();
-		MvcResult second = mockMvc.perform(post("/api/recommendations/today").with(loginUser()))
+		MvcResult second = mockMvc.perform(post("/api/recommendations/today").with(loginUser()).with(csrf()))
 			.andExpect(status().isOk())
 			.andReturn();
 
@@ -104,7 +105,7 @@ class RecommendationControllerIntegrationTest {
 	}
 
 	private void saveOnboarding() throws Exception {
-		mockMvc.perform(post("/api/profile/onboarding").with(loginUser())
+		mockMvc.perform(post("/api/profile/onboarding").with(loginUser()).with(csrf())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("""
 					{

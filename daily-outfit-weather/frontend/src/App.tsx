@@ -1271,12 +1271,20 @@ function profileToForm(profile: ProfileResponse): ProfileForm {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string> | undefined),
+  }
+  const method = (options.method ?? 'GET').toUpperCase()
+  const csrfToken = readCookie('XSRF-TOKEN')
+  if (csrfToken && !['GET', 'HEAD', 'OPTIONS', 'TRACE'].includes(method)) {
+    headers['X-XSRF-TOKEN'] = csrfToken
+  }
+
   const response = await fetch(path, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
     ...options,
+    credentials: 'include',
+    headers,
   })
 
   if (!response.ok) {
@@ -1285,6 +1293,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
 
   return response.json() as Promise<T>
+}
+
+function readCookie(name: string) {
+  return document.cookie
+    .split('; ')
+    .find((cookie) => cookie.startsWith(`${name}=`))
+    ?.split('=')
+    .slice(1)
+    .join('=')
 }
 
 class ApiError extends Error {

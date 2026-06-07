@@ -1,6 +1,7 @@
 package com.dailyoutfitweather.recommendation;
 
 import static org.hamcrest.Matchers.is;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oauth2Login;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -49,7 +50,7 @@ class FeedbackControllerIntegrationTest {
 	void saveFeedbackForOwnRecommendation() throws Exception {
 		Long recommendationId = insertRecommendation(USER_EMAIL);
 
-		mockMvc.perform(post("/api/recommendations/{recommendationId}/feedback", recommendationId).with(loginUser(USER_EMAIL))
+		mockMvc.perform(post("/api/recommendations/{recommendationId}/feedback", recommendationId).with(loginUser(USER_EMAIL)).with(csrf())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("""
 					{
@@ -70,7 +71,7 @@ class FeedbackControllerIntegrationTest {
 		Long recommendationId = insertRecommendation(USER_EMAIL);
 		saveFeedback(recommendationId, "COLD");
 
-		mockMvc.perform(post("/api/recommendations/{recommendationId}/feedback", recommendationId).with(loginUser(USER_EMAIL))
+		mockMvc.perform(post("/api/recommendations/{recommendationId}/feedback", recommendationId).with(loginUser(USER_EMAIL)).with(csrf())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("""
 					{
@@ -90,7 +91,7 @@ class FeedbackControllerIntegrationTest {
 	void rejectFeedbackForOtherUsersRecommendation() throws Exception {
 		Long otherRecommendationId = insertRecommendation(OTHER_EMAIL);
 
-		mockMvc.perform(post("/api/recommendations/{recommendationId}/feedback", otherRecommendationId).with(loginUser(USER_EMAIL))
+		mockMvc.perform(post("/api/recommendations/{recommendationId}/feedback", otherRecommendationId).with(loginUser(USER_EMAIL)).with(csrf())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("""
 					{
@@ -104,14 +105,14 @@ class FeedbackControllerIntegrationTest {
 	void rejectEmptyFeedback() throws Exception {
 		Long recommendationId = insertRecommendation(USER_EMAIL);
 
-		mockMvc.perform(post("/api/recommendations/{recommendationId}/feedback", recommendationId).with(loginUser(USER_EMAIL))
+		mockMvc.perform(post("/api/recommendations/{recommendationId}/feedback", recommendationId).with(loginUser(USER_EMAIL)).with(csrf())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{}"))
 			.andExpect(status().isBadRequest());
 	}
 
 	private void saveFeedback(Long recommendationId, String temperatureFeedback) throws Exception {
-		mockMvc.perform(post("/api/recommendations/{recommendationId}/feedback", recommendationId).with(loginUser(USER_EMAIL))
+		mockMvc.perform(post("/api/recommendations/{recommendationId}/feedback", recommendationId).with(loginUser(USER_EMAIL)).with(csrf())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("""
 					{
