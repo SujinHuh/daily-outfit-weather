@@ -37,6 +37,15 @@ mkdir -p backups
 set -a
 source .env
 set +a
+COMPOSE_FILE=docker-compose.prod.yml ENV_FILE=.env scripts/db-backup.sh
+```
+
+기존 로컬 개발 compose의 고정 컨테이너명 기준으로 실행할 때는 `COMPOSE_FILE` 없이 실행한다.
+
+```bash
+set -a
+source .env
+set +a
 scripts/db-backup.sh
 ```
 
@@ -122,6 +131,15 @@ curl -i "http://localhost:${FRONTEND_PORT:-8080}/api/health"
 ```
 
 로컬/Compose 기본 컨테이너명 기준 restore 스크립트:
+
+```bash
+set -a
+source .env
+set +a
+COMPOSE_FILE=docker-compose.prod.yml ENV_FILE=.env scripts/db-restore.sh backups/<backup-file>.dump
+```
+
+기존 로컬 개발 compose의 고정 컨테이너명 기준으로 실행할 때는 `COMPOSE_FILE` 없이 실행한다.
 
 ```bash
 set -a

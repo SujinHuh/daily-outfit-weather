@@ -68,6 +68,7 @@ sh -n scripts/db-restore.sh
 - `GET /api/health`가 200을 반환하고 `XSRF-TOKEN` 쿠키를 발급하는 것을 확인했다.
 - `scripts/deployment-smoke.sh`, `scripts/db-backup.sh`, `scripts/db-restore.sh` 문법 검사를 통과했다.
 - `.env`와 로컬 PostgreSQL 컨테이너 기준 `scripts/db-backup.sh`가 백업 파일을 생성하는 것을 확인했다.
+- `scripts/db-backup.sh`와 `scripts/db-restore.sh`는 `COMPOSE_FILE`이 설정되면 prod compose service name `postgres`를 사용하고, 설정되지 않으면 기존 로컬 개발 컨테이너명을 사용한다.
 
 ### Production Smoke Checklist
 
@@ -108,3 +109,52 @@ curl -I https://<운영 host>/oauth2/authorization/google
 - 새로고침 후에도 로그인 세션이 유지된다.
 - 로그아웃 후 보호 API가 401을 반환한다.
 - KMA 장애 또는 미지원 위치에서 운영 fallback 비활성화 시 `WEATHER_UNAVAILABLE`이 반환된다.
+
+## 2026-06-07 External Readiness Recheck
+
+### Scope
+
+서브에이전트로 운영 전 잔여 항목을 재검토하고, 로컬에서 가능한 production compose smoke를 추가 실행했다.
+
+### Confirmed In Repo
+
+- 운영 도메인/TLS/proxy header 기준은 [Security Deployment Policy](./security-deployment-policy.md)에 정리되어 있다.
+- Google Console OAuth origin/redirect URI 등록 절차와 브라우저 full-flow smoke checklist가 문서화되어 있다.
+- `docker-compose.prod.yml`은 `postgres`, `backend`, `frontend` 서비스를 정상 파싱한다.
+- `scripts/deployment-smoke.sh`는 health와 OAuth redirect smoke를 자동화한다.
+- `scripts/db-backup.sh`와 `scripts/db-restore.sh`는 prod compose service name과 기존 로컬 컨테이너명 양쪽을 지원한다.
+- DB backup/restore/migration rollback 절차와 logs/monitoring/incident triage runbook이 추가되어 있다.
+- KMA 서비스 지역 제한과 확장 gate가 [KMA Location Grid Service Area](./kma-service-area.md)에 정리되어 있다.
+
+### Additional Local Smoke
+
+```bash
+FRONTEND_PORT=18080 \
+APP_FRONTEND_SUCCESS_URL=https://daily-outfit-weather.example.com \
+APP_SECURITY_ALLOWED_ORIGINS=https://daily-outfit-weather.example.com \
+APP_NOTIFICATION_GENERATE_DUE_TOKEN=prod-smoke-token \
+docker compose -p dow-prod-smoke --env-file .env -f docker-compose.prod.yml up -d --build
+
+BASE_URL=http://localhost:18080 scripts/deployment-smoke.sh
+
+FRONTEND_PORT=18080 \
+APP_FRONTEND_SUCCESS_URL=https://daily-outfit-weather.example.com \
+APP_SECURITY_ALLOWED_ORIGINS=https://daily-outfit-weather.example.com \
+APP_NOTIFICATION_GENERATE_DUE_TOKEN=prod-smoke-token \
+docker compose -p dow-prod-smoke --env-file .env -f docker-compose.prod.yml down -v
+```
+
+결과:
+
+- 별도 compose project `dow-prod-smoke`로 production stack이 기동했다.
+- `GET /api/health` smoke가 통과했다.
+- `/oauth2/authorization/google` 302 redirect smoke가 통과했다.
+- smoke용 컨테이너와 볼륨은 정리했다.
+
+### Still External
+
+- 실제 public domain, DNS, TLS certificate, production host/load balancer/proxy provisioning
+- Google Console 운영 OAuth client 등록과 consent/test user 설정
+- 실제 운영 도메인에서 브라우저 Google OAuth login/callback/session/CSRF/logout full-flow smoke
+- 서비스 지역 launch decision: 현재 KMA catalog 지원 지역으로 제한하거나 catalog를 확장
+- 운영 백업 저장소, restore drill scheduling, log shipping, retention, alerting system 연결
