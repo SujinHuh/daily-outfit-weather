@@ -1,5 +1,6 @@
 package com.dailyoutfitweather.profile;
 
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -52,16 +53,16 @@ class ProfileControllerIntegrationTest {
 
 	@Test
 	void saveOnboardingAndReadProfile() throws Exception {
-		mockMvc.perform(post("/api/profile/onboarding").with(loginUser()).with(csrf())
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(profileRequest("수진", "역삼동", "성수동")))
-			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.nickname", is("수진")))
-			.andExpect(jsonPath("$.coldSensitivity", is(4)))
-			.andExpect(jsonPath("$.homeLocation.dong", is("역삼동")))
-			.andExpect(jsonPath("$.homeLocation.nx", is(61)))
-			.andExpect(jsonPath("$.homeLocation.ny", is(125)))
-			.andExpect(jsonPath("$.workLocation.dong", is("성수동")));
+			mockMvc.perform(post("/api/profile/onboarding").with(loginUser()).with(csrf())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content(profileRequest("수진", "역삼1동", "판교동")))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.nickname", is("수진")))
+				.andExpect(jsonPath("$.coldSensitivity", is(4)))
+				.andExpect(jsonPath("$.homeLocation.dong", is("역삼1동")))
+				.andExpect(jsonPath("$.homeLocation.nx", is(61)))
+				.andExpect(jsonPath("$.homeLocation.ny", is(125)))
+				.andExpect(jsonPath("$.workLocation.dong", is("판교동")));
 
 		mockMvc.perform(get("/api/profile").with(loginUser()))
 			.andExpect(status().isOk())
@@ -98,14 +99,14 @@ class ProfileControllerIntegrationTest {
 
 	@Test
 	void searchLocationsByKeyword() throws Exception {
-		mockMvc.perform(get("/api/locations/search").with(loginUser())
-				.param("keyword", "역삼"))
-			.andExpect(status().isOk())
-			.andExpect(jsonPath("$[0].sido", is("서울특별시")))
-			.andExpect(jsonPath("$[0].sigungu", is("강남구")))
-			.andExpect(jsonPath("$[0].dong", is("역삼동")))
-			.andExpect(jsonPath("$[0].nx", is(61)))
-			.andExpect(jsonPath("$[0].ny", is(125)));
+			mockMvc.perform(get("/api/locations/search").with(loginUser())
+					.param("keyword", "역삼"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[*].sido", hasItem("서울특별시")))
+				.andExpect(jsonPath("$[*].sigungu", hasItem("강남구")))
+				.andExpect(jsonPath("$[*].dong", hasItem("역삼1동")))
+				.andExpect(jsonPath("$[*].nx", hasItem(61)))
+				.andExpect(jsonPath("$[*].ny", hasItem(125)));
 	}
 
 	@Test

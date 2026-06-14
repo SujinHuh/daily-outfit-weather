@@ -1271,21 +1271,31 @@ function profileToForm(profile: ProfileResponse): ProfileForm {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(options.headers as Record<string, string> | undefined),
-  }
-  const method = (options.method ?? 'GET').toUpperCase()
-  const csrfToken = readCookie('XSRF-TOKEN')
-  if (csrfToken && !['GET', 'HEAD', 'OPTIONS', 'TRACE'].includes(method)) {
-    headers['X-XSRF-TOKEN'] = csrfToken
+	const method = (options.method ?? 'GET').toUpperCase()
+	const isMutating = !['GET', 'HEAD', 'OPTIONS', 'TRACE'].includes(method)
+
+	await ensureCsrfCookie(method)
+
+  const callFetch = async () => {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(options.headers as Record<string, string> | undefined),
+    }
+    const csrfToken = readCookie('XSRF-TOKEN')
+    if (csrfToken && isMutating) {
+      headers['X-XSRF-TOKEN'] = csrfToken
+    }
+    return fetch(path, { ...options, credentials: 'include', headers })
   }
 
-  const response = await fetch(path, {
-    ...options,
-    credentials: 'include',
-    headers,
-  })
+  let response = await callFetch()
+
+  // If 403, try refreshing CSRF token once
+  if (response.status === 403 && isMutating) {
+    console.warn(`[API] 403 Forbidden on ${path}. Retrying with fresh CSRF token...`)
+    await fetch('/api/health', { credentials: 'include' })
+    response = await callFetch()
+  }
 
   if (!response.ok) {
     const body = await response.json().catch(() => null)
@@ -1293,6 +1303,13 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
 
   return response.json() as Promise<T>
+}
+
+async function ensureCsrfCookie(method: string) {
+  if (['GET', 'HEAD', 'OPTIONS', 'TRACE'].includes(method) || readCookie('XSRF-TOKEN')) {
+    return
+  }
+  await fetch('/api/health', { credentials: 'include' })
 }
 
 function readCookie(name: string) {

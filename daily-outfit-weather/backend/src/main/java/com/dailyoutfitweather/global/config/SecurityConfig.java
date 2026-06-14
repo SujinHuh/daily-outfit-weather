@@ -9,11 +9,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.web.cors.CorsConfiguration;
@@ -48,10 +51,14 @@ public class SecurityConfig {
 
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+		CsrfTokenRequestAttributeHandler requestHandler = new CsrfTokenRequestAttributeHandler();
+		requestHandler.setCsrfRequestAttributeName(null);
+
 		http
 			.cors(cors -> cors.configurationSource(corsConfigurationSource()))
 			.csrf(csrf -> csrf
 				.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+				.csrfTokenRequestHandler(requestHandler)
 				.ignoringRequestMatchers(
 					"/oauth2/**",
 					"/login/**",
@@ -67,6 +74,7 @@ public class SecurityConfig {
 			)
 			.exceptionHandling(exception -> exception
 				.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+				.accessDeniedHandler(accessDeniedHandler())
 			)
 			.oauth2Login(oauth2 -> oauth2
 				.userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
@@ -85,6 +93,14 @@ public class SecurityConfig {
 	}
 
 	@Bean
+	public AccessDeniedHandler accessDeniedHandler() {
+		return (request, response, accessDeniedException) -> {
+			System.err.println("Access Denied: " + accessDeniedException.getMessage() + " for " + request.getRequestURI());
+			response.sendError(HttpStatus.FORBIDDEN.value(), accessDeniedException.getMessage());
+		};
+	}
+
+	@Bean
 	CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
 		configuration.setAllowedOrigins(parseAllowedOrigins());
@@ -97,10 +113,16 @@ public class SecurityConfig {
 	}
 
 	private List<String> parseAllowedOrigins() {
-		return Arrays.stream(allowedOrigins.split(","))
+		List<String> origins = new java.util.ArrayList<>(Arrays.stream(allowedOrigins.split(","))
 			.map(String::trim)
 			.filter(origin -> !origin.isBlank())
-			.toList();
+			.toList());
+		// Always allow common local development origins to prevent CORS-related 403
+		if (!origins.contains("http://localhost:5173")) origins.add("http://localhost:5173");
+		if (!origins.contains("http://localhost:8080")) origins.add("http://localhost:8080");
+		if (!origins.contains("http://127.0.0.1:5173")) origins.add("http://127.0.0.1:5173");
+		if (!origins.contains("http://127.0.0.1:8080")) origins.add("http://127.0.0.1:8080");
+		return origins;
 	}
 
 	private static class CsrfCookieFilter extends OncePerRequestFilter {
@@ -111,6 +133,8 @@ public class SecurityConfig {
 			HttpServletResponse response,
 			FilterChain filterChain
 		) throws ServletException, IOException {
+			// In Spring Security 6, the CsrfToken is deferred.
+			// Accessing it as a request attribute and calling getToken() forces its resolution.
 			CsrfToken csrfToken = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
 			if (csrfToken != null) {
 				csrfToken.getToken();

@@ -40,7 +40,12 @@ public class ProductionConfigurationValidator {
 	}
 
 	private void requireRealValue(String name, String value, String disallowedValue) {
-		if (value == null || value.isBlank() || value.equals(disallowedValue) || value.contains("localhost")) {
+		if (value == null
+			|| value.isBlank()
+			|| value.equals(disallowedValue)
+			|| value.contains("localhost")
+			|| value.contains("example.com")
+			|| value.contains("change-this")) {
 			throw new IllegalStateException(name + " must be configured for prod profile");
 		}
 	}
