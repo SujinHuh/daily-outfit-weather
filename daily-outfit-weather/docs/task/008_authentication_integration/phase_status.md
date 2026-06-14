@@ -2,9 +2,9 @@
 
 ## Current State
 
-- Task Status: `fixes_validated`
+- Task Status: `debugging_csrf`
 - Current Phase: `Phase 7`
-- Current Gate: `ready for real OAuth smoke test`
+- Current Gate: `ready for re-testing onboarding`
 - Last Approved Phase: `Phase 6`
 
 ## Allowed Write Set

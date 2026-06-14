@@ -12,7 +12,10 @@ FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
-RUN addgroup -S app && adduser -S app -G app
+RUN addgroup -S app \
+	&& adduser -S app -G app \
+	&& mkdir -p /app/logs \
+	&& chown -R app:app /app/logs
 
 COPY --from=build /workspace/build/libs/*.jar app.jar
 

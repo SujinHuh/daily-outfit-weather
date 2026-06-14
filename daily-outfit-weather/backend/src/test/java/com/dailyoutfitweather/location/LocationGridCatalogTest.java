@@ -17,7 +17,7 @@ class LocationGridCatalogTest {
 
 	@Test
 	void findsGridByExactAdministrativeNames() {
-		LocationGrid grid = catalog.find("서울특별시", "강남구", "역삼동").orElseThrow();
+		LocationGrid grid = catalog.find("서울특별시", "강남구", "역삼1동").orElseThrow();
 
 		assertThat(grid.nx()).isEqualTo(61);
 		assertThat(grid.ny()).isEqualTo(125);
@@ -34,12 +34,31 @@ class LocationGridCatalogTest {
 	void searchesSoutheastSeoulNeighborhoodsByDongKeyword() {
 		assertThat(catalog.search("성내"))
 			.extracting(LocationGrid::dong)
-			.containsExactly("성내1동", "성내2동", "성내3동");
+			.contains("성내1동", "성내2동", "성내3동");
+		assertThat(catalog.search("성내동"))
+			.extracting(LocationGrid::dong)
+			.contains("성내1동", "성내2동", "성내3동");
 		assertThat(catalog.search("둔촌"))
 			.extracting(LocationGrid::dong)
 			.containsExactly("둔촌1동", "둔촌2동");
 		assertThat(catalog.search("잠실"))
 			.extracting(LocationGrid::dong)
-			.containsExactly("잠실본동", "잠실2동", "잠실3동", "잠실4동", "잠실6동", "잠실7동");
+			.contains("잠실본동", "잠실2동", "잠실3동", "잠실4동", "잠실6동", "잠실7동");
+		assertThat(catalog.search("잠실동"))
+			.extracting(LocationGrid::dong)
+			.contains("잠실본동", "잠실2동", "잠실3동", "잠실4동", "잠실6동", "잠실7동");
+	}
+
+	@Test
+	void searchesNationwideAdministrativeAreas() {
+		assertThat(catalog.search("해운대"))
+			.extracting(LocationGrid::sigungu)
+			.contains("해운대구");
+		assertThat(catalog.search("서귀포"))
+			.extracting(LocationGrid::sigungu)
+			.contains("서귀포시");
+		assertThat(catalog.search("조치원"))
+			.extracting(LocationGrid::dong)
+			.contains("조치원읍");
 	}
 }
