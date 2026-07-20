@@ -504,3 +504,19 @@ http://localhost:8080/login/oauth2/code/google
 - `BASE_URL=http://127.0.0.1:8080 scripts/deployment-smoke.sh` passed.
 - `daily-outfit-weather-backend-1`, `daily-outfit-weather-frontend-1`, `daily-outfit-weather-postgres-1` are `Up`.
 - `/oauth2/authorization/google` returns 302 with `redirect_uri=http://localhost:8080/login/oauth2/code/google`.
+
+## 2026-07-20 GCP Deployment Readiness & Docker Logging Limits
+
+### Scope
+
+GCP VM 배포 및 개인/가족 전용 PWA 이용 환경 준비 과정에서 Docker 컨테이너 로그 용량 제한 보완 및 GCP 전용 배포 가이드 문서(`docs/gcp-deployment-guide.md`)를 작성했다.
+
+### Changes
+
+- `docker-compose.prod.yml`:
+  - `postgres`, `backend`, `frontend` 서비스에 Docker log max-size(`10m`, `max-file: 3`) 옵션 추가
+- `docs/gcp-deployment-guide.md`:
+  - GCP VM 구축, 외부 고정 IP 설정, VPC 방화벽 오픈 (포트 80/443), `.env` 설정, Google OAuth 테스트 사용자 등록 및 모바일 PWA "홈 화면에 추가" 체크리스트 문서화
+- `docs/entrypoint.md`:
+  - 중앙 문서 인덱스에 GCP 배포 가이드 링크 추가
+

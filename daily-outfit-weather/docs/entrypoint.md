@@ -5,6 +5,7 @@
 ## Getting Started
 - [README](../README.md): 프로젝트 개요 및 로컬 실행 가이드
 - [Development Plan](./development-plan.md): Phase 1~9 구현 로드맵
+- [GCP Deployment Guide](./gcp-deployment-guide.md): GCP 배포 및 개인/가족 전용 모바일 PWA 배포 가이드
 
 ## Project Standards
 - [Architecture](./architecture.md): 대표 아키텍처 문서
