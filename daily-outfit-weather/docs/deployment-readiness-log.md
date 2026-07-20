@@ -520,3 +520,17 @@ GCP VM 배포 및 개인/가족 전용 PWA 이용 환경 준비 과정에서 Doc
 - `docs/entrypoint.md`:
   - 중앙 문서 인덱스에 GCP 배포 가이드 링크 추가
 
+## 2026-07-20 PR Draft Documentation (generateNextQuestion & FinalFeedback SRP Refactoring)
+
+### Scope
+
+`InterviewServiceImpl` 내 `generateNextQuestion` 질문 생성 로직과 `FinalFeedback` 최종 피드백 생성 트리거 간의 단일 책임 원칙(SRP) 위배를 개선하기 위한 리팩토링 PR 초안 문서(`docs/pr-draft-refactoring-final-feedback.md`)를 작성하고 중앙 인덱스에 연동했다.
+
+### Changes
+
+- `docs/pr-draft-refactoring-final-feedback.md`:
+  - PR Template 포맷으로 책임 분리 배경, 리팩토링 목표(`FinalFeedbackService` 도입), 검증 계획 작성
+- `docs/entrypoint.md`:
+  - Getting Started 섹션에 PR draft 문서 링크 추가
+
+
