@@ -54,10 +54,18 @@ class NotificationLogServiceTest {
 		NotificationLog log = logs.get(0);
 		assertThat(log.getNotificationType()).isEqualTo(NotificationType.MORNING_REGULAR);
 		assertThat(log.getStatus()).isEqualTo(NotificationStatus.PENDING);
-		assertThat(log.getBody()).isEqualTo("오늘 추천을 확인할 시간입니다.");
+		assertThat(log.getRecommendationId()).isNotNull();
+		assertThat(log.getBody())
+			.contains("출근 체감 16도")
+			.contains("퇴근 체감 13도")
+			.contains("강수확률 30%")
+			.doesNotContain("\n");
+		assertThat(log.getBody()).isNotEqualTo("오늘 추천을 확인할 시간입니다.");
 
 		Long savedUserId = jdbcTemplate.queryForObject("select user_id from notification_logs", Long.class);
 		assertThat(savedUserId).isEqualTo(dueUserId);
+		Long recommendationCount = jdbcTemplate.queryForObject("select count(*) from outfit_recommendations", Long.class);
+		assertThat(recommendationCount).isEqualTo(1);
 	}
 
 	@Test

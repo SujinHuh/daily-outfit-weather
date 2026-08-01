@@ -7,7 +7,8 @@ public record WeatherSnapshot(
 	int feelsLikeTemperature,
 	int rainProbability,
 	PrecipitationType precipitationType,
-	double windSpeed
+	double windSpeed,
+	int humidity
 ) {
 
 	public WeatherSnapshot {
@@ -18,5 +19,18 @@ public record WeatherSnapshot(
 		if (windSpeed < 0) {
 			throw new IllegalArgumentException("windSpeed must be greater than or equal to 0");
 		}
+		if (humidity < 0 || humidity > 100) {
+			throw new IllegalArgumentException("humidity must be between 0 and 100");
+		}
+	}
+
+	public WeatherSnapshot(
+		int temperature,
+		int feelsLikeTemperature,
+		int rainProbability,
+		PrecipitationType precipitationType,
+		double windSpeed
+	) {
+		this(temperature, feelsLikeTemperature, rainProbability, precipitationType, windSpeed, 50);
 	}
 }

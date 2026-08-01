@@ -89,6 +89,38 @@ class RecommendationServiceTest {
 	}
 
 	@Test
+	void refreshesExistingRecommendationWhenStoredHumidityIsMissing() {
+		User user = devUser();
+		UserProfile profile = profile(user);
+		OutfitRecommendation existing = staleRecommendation(user, TARGET_DATE);
+		WeatherSnapshot commuteWeather = new WeatherSnapshot(30, 32, 20, PrecipitationType.NONE, 2.4, 79);
+		WeatherSnapshot leaveWorkWeather = new WeatherSnapshot(31, 34, 30, PrecipitationType.NONE, 2.8, 82);
+		RecommendationResult result = new RecommendationResult(
+			34,
+			"반팔티",
+			"없음",
+			"물",
+			java.util.List.of("물"),
+			"후텁지근하게 더워요. 시원하게 입고 물을 챙겨요.",
+			"습도 82%로 후텁지근함을 반영했습니다.",
+			"HOT_SUMMER"
+		);
+		when(userProfileRepository.findByUserId(user.getId())).thenReturn(Optional.of(profile));
+		when(outfitRecommendationRepository.findByUserIdAndTargetDate(user.getId(), TARGET_DATE))
+			.thenReturn(Optional.of(existing));
+		when(weatherSnapshotProvider.getTodayWeather(user, profile))
+			.thenReturn(new WeatherSnapshots(commuteWeather, leaveWorkWeather));
+		when(recommendationEngine.recommend(org.mockito.ArgumentMatchers.any(RecommendationInput.class))).thenReturn(result);
+
+		RecommendationResponse response = recommendationService.getOrCreateTodayRecommendation(user);
+
+		assertThat(response.weatherSummary().humidity()).isEqualTo(82);
+		assertThat(response.summaryMessage()).contains("후텁지근");
+		assertThat(existing.getWeatherSnapshot().weatherSummary().humidity()).isEqualTo(82);
+		verify(outfitRecommendationRepository, never()).save(org.mockito.ArgumentMatchers.any());
+	}
+
+	@Test
 	void createsRecommendationForFixedSeoulDateAndStoresFullWeatherSnapshot() {
 		User user = devUser();
 		UserProfile profile = profile(user);
@@ -138,6 +170,17 @@ class RecommendationServiceTest {
 	private OutfitRecommendation recommendation(User user, LocalDate targetDate) {
 		WeatherSnapshot commuteWeather = new WeatherSnapshot(17, 16, 20, PrecipitationType.NONE, 2.4);
 		WeatherSnapshot leaveWorkWeather = new WeatherSnapshot(14, 13, 30, PrecipitationType.NONE, 2.8);
+		return new OutfitRecommendation(
+			user,
+			targetDate,
+			result(),
+			RecommendationWeatherSnapshot.from(commuteWeather, leaveWorkWeather)
+		);
+	}
+
+	private OutfitRecommendation staleRecommendation(User user, LocalDate targetDate) {
+		WeatherSnapshot commuteWeather = new WeatherSnapshot(17, 16, 20, PrecipitationType.NONE, 2.4, 0);
+		WeatherSnapshot leaveWorkWeather = new WeatherSnapshot(14, 13, 30, PrecipitationType.NONE, 2.8, 0);
 		return new OutfitRecommendation(
 			user,
 			targetDate,

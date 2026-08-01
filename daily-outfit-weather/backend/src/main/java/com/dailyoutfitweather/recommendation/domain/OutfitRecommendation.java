@@ -88,6 +88,16 @@ public class OutfitRecommendation {
 		this.weatherSnapshot = weatherSnapshot;
 	}
 
+	public void refresh(RecommendationResult result, RecommendationWeatherSnapshot weatherSnapshot) {
+		this.summaryMessage = result.summaryMessage();
+		this.topRecommendation = result.topRecommendation();
+		this.outerRecommendation = result.outerRecommendation();
+		this.itemRecommendation = result.itemRecommendation();
+		this.characterImageType = result.characterImageType();
+		this.reason = result.reason();
+		this.weatherSnapshot = weatherSnapshot;
+	}
+
 	public Long getId() {
 		return id;
 	}

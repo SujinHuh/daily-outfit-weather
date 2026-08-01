@@ -62,12 +62,13 @@ public class SecurityConfig {
 				.ignoringRequestMatchers(
 					"/oauth2/**",
 					"/login/**",
+					"/api/temp-login",
 					"/api/notifications/generate-due"
 				)
 			)
 			.addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)
 			.authorizeHttpRequests(auth -> auth
-				.requestMatchers("/api/health", "/oauth2/**", "/login/**").permitAll()
+				.requestMatchers("/api/health", "/api/auth-options", "/api/temp-login", "/oauth2/**", "/login/**").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/notifications/generate-due").permitAll()
 				.requestMatchers("/api/**").authenticated()
 				.anyRequest().permitAll()

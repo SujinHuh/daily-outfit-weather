@@ -37,9 +37,10 @@ public class KmaForecastParser {
 		int temperature = parseRoundedInt(required(values, "TMP"));
 		int rainProbability = parseRoundedInt(values.getOrDefault("POP", "0"));
 		double windSpeed = parseDouble(values.getOrDefault("WSD", "0"));
+		int humidity = parseRoundedInt(values.getOrDefault("REH", "50"));
 		PrecipitationType precipitationType = parsePrecipitationType(values.getOrDefault("PTY", "0"));
-		int feelsLikeTemperature = feelsLikeTemperatureCalculator.calculate(temperature, windSpeed);
-		return new WeatherSnapshot(temperature, feelsLikeTemperature, rainProbability, precipitationType, windSpeed);
+		int feelsLikeTemperature = feelsLikeTemperatureCalculator.calculate(temperature, windSpeed, humidity);
+		return new WeatherSnapshot(temperature, feelsLikeTemperature, rainProbability, precipitationType, windSpeed, humidity);
 	}
 
 	private String required(Map<String, String> values, String category) {

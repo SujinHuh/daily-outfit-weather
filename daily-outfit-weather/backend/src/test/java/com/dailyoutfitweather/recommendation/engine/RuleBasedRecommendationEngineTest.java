@@ -62,6 +62,22 @@ class RuleBasedRecommendationEngineTest {
 	}
 
 	@Test
+	void explainsHumidHeatForMuggySummerDay() {
+		RecommendationResult result = engine.recommend(input(
+			new WeatherSnapshot(31, 33, 10, PrecipitationType.NONE, 1.0, 82),
+			new WeatherSnapshot(30, 32, 10, PrecipitationType.NONE, 1.0, 78),
+			2,
+			2,
+			TransportType.PUBLIC_TRANSPORT,
+			MessageTone.FRIENDLY
+		));
+
+		assertThat(result.summaryMessage()).contains("후텁지근");
+		assertThat(result.reason()).contains("습도 82%");
+		assertThat(result.itemRecommendations()).contains("손선풍기", "물");
+	}
+
+	@Test
 	void preferWindbreakerForMildWindyDay() {
 		RecommendationResult result = engine.recommend(input(
 			weather(24, 24, 10, PrecipitationType.NONE, 4.5),
@@ -197,6 +213,8 @@ class RuleBasedRecommendationEngineTest {
 		assertThatThrownBy(() -> weather(20, 20, 10, null, 1.0))
 			.isInstanceOf(NullPointerException.class);
 		assertThatThrownBy(() -> weather(20, 20, 10, PrecipitationType.NONE, -0.1))
+			.isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> new WeatherSnapshot(20, 20, 10, PrecipitationType.NONE, 1.0, 101))
 			.isInstanceOf(IllegalArgumentException.class);
 	}
 

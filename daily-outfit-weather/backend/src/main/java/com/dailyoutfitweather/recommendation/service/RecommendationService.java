@@ -18,7 +18,6 @@ import com.dailyoutfitweather.recommendation.service.WeatherSnapshotProvider.Wea
 import com.dailyoutfitweather.user.domain.User;
 import com.dailyoutfitweather.user.domain.UserProfile;
 import com.dailyoutfitweather.user.repository.UserProfileRepository;
-import com.dailyoutfitweather.user.repository.UserRepository;
 
 @Service
 public class RecommendationService {
@@ -45,16 +44,46 @@ public class RecommendationService {
 
 	@Transactional
 	public RecommendationResponse getOrCreateTodayRecommendation(User user) {
+		return getOrCreateRecommendation(user, LocalDate.now(clock));
+	}
+
+	@Transactional
+	public RecommendationResponse getOrCreateRecommendation(User user, LocalDate targetDate) {
 		UserProfile profile = userProfileRepository.findByUserId(user.getId())
 			.orElseThrow(ProfileNotFoundException::new);
-		LocalDate targetDate = LocalDate.now(clock);
-
 		return outfitRecommendationRepository.findByUserIdAndTargetDate(user.getId(), targetDate)
-			.map(RecommendationResponse::from)
+			.map(recommendation -> refreshIfHumidityMissing(recommendation, user, profile))
 			.orElseGet(() -> RecommendationResponse.from(createRecommendation(user, profile, targetDate)));
 	}
 
 	private OutfitRecommendation createRecommendation(User user, UserProfile profile, LocalDate targetDate) {
+		RecommendationPayload payload = createRecommendationPayload(user, profile);
+		return outfitRecommendationRepository.save(
+			new OutfitRecommendation(user, targetDate, payload.result(), payload.weatherSnapshot())
+		);
+	}
+
+	private RecommendationResponse refreshIfHumidityMissing(
+		OutfitRecommendation recommendation,
+		User user,
+		UserProfile profile
+	) {
+		if (!hasMissingHumidity(recommendation)) {
+			return RecommendationResponse.from(recommendation);
+		}
+		RecommendationPayload payload = createRecommendationPayload(user, profile);
+		recommendation.refresh(payload.result(), payload.weatherSnapshot());
+		return RecommendationResponse.from(recommendation);
+	}
+
+	private boolean hasMissingHumidity(OutfitRecommendation recommendation) {
+		RecommendationWeatherSnapshot weatherSnapshot = recommendation.getWeatherSnapshot();
+		return weatherSnapshot.weatherSummary().humidity() <= 0
+			|| weatherSnapshot.commuteWeather().humidity() <= 0
+			|| weatherSnapshot.leaveWorkWeather().humidity() <= 0;
+	}
+
+	private RecommendationPayload createRecommendationPayload(User user, UserProfile profile) {
 		WeatherSnapshots weather = weatherSnapshotProvider.getTodayWeather(user, profile);
 		RecommendationInput input = new RecommendationInput(
 			weather.commuteWeather(),
@@ -69,6 +98,12 @@ public class RecommendationService {
 			weather.commuteWeather(),
 			weather.leaveWorkWeather()
 		);
-		return outfitRecommendationRepository.save(new OutfitRecommendation(user, targetDate, result, weatherSnapshot));
+		return new RecommendationPayload(result, weatherSnapshot);
+	}
+
+	private record RecommendationPayload(
+		RecommendationResult result,
+		RecommendationWeatherSnapshot weatherSnapshot
+	) {
 	}
 }

@@ -29,8 +29,10 @@ server:
   forward-headers-strategy: framework
   servlet:
     session:
+      timeout: ${SESSION_TIMEOUT:30m}
       cookie:
         http-only: true
+        max-age: ${SESSION_COOKIE_MAX_AGE:-1}
         secure: ${SESSION_COOKIE_SECURE:false}
         same-site: ${SESSION_COOKIE_SAME_SITE:lax}
 
@@ -47,6 +49,11 @@ app:
     generate-due-token: ${APP_NOTIFICATION_GENERATE_DUE_TOKEN:}
   weather:
     fallback-enabled: ${APP_WEATHER_FALLBACK_ENABLED:true}
+  temp-login:
+    enabled: ${APP_TEMP_LOGIN_ENABLED:false}
+    password: ${APP_TEMP_LOGIN_PASSWORD:${APP_TEMP_LOGIN_TOKEN:}}
+    email: ${APP_TEMP_LOGIN_EMAIL:temp-user@daily-outfit-weather.local}
+    nickname: ${APP_TEMP_LOGIN_NICKNAME:임시 사용자}
 
 kma:
   service-key: ${KMA_SERVICE_KEY:}

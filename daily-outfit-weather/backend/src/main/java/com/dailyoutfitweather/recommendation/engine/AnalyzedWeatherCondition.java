@@ -7,6 +7,8 @@ record AnalyzedWeatherCondition(
 	int minFeelsLikeTemperature,
 	int maxFeelsLikeTemperature,
 	int maxRainProbability,
+	int maxHumidity,
+	boolean humidHeat,
 	boolean rainExpected,
 	boolean leaveWorkRainExpected,
 	boolean snowExpected,

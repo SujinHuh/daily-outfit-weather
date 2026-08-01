@@ -307,14 +307,13 @@ button:disabled {
 }
 
 .hero-panel {
-  min-height: calc(100vh - 110px);
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.65fr);
   grid-template-areas:
-    "copy"
-    "art"
-    "summary"
-    "actions";
+    "copy art"
+    "summary art"
+    "actions art"
+    "notice art";
   gap: 18px;
   align-items: start;
   padding: 32px;
@@ -598,6 +597,15 @@ button:disabled {
   justify-content: flex-start;
 }
 
+.notification-note {
+  grid-area: notice;
+  margin: -6px 0 0;
+  color: #56716b;
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
 .scroll-guide {
   display: grid;
   place-items: center;
@@ -615,6 +623,47 @@ button:disabled {
   line-height: 1;
 }
 
+.tabbed-dashboard {
+  display: grid;
+  gap: 14px;
+}
+
+.dashboard-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #d6dfdc;
+  border-radius: 8px;
+  background: rgb(251 252 248 / 96%);
+  backdrop-filter: blur(8px);
+}
+
+.dashboard-tabs button {
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid #d7e2dd;
+  background: #ffffff;
+  color: #33423e;
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.dashboard-tabs button.active {
+  border-color: #17211f;
+  background: #17211f;
+  color: #ffffff;
+}
+
+.tab-panel {
+  display: grid;
+  gap: 14px;
+}
+
 .section-intro {
   display: grid;
   gap: 4px;
@@ -628,13 +677,14 @@ button:disabled {
 }
 
 .weather-strip,
-.recommendation-grid {
+.recommendation-grid,
+.commute-grid {
   display: grid;
   gap: 12px;
 }
 
 .weather-strip {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .hourly-panel {
@@ -732,6 +782,9 @@ button:disabled {
 
 .metric,
 .recommendation-block,
+.commute-card,
+.reason-panel,
+.prep-panel,
 .feedback-panel,
 .form-section {
   border: 1px solid #d6dfdc;
@@ -770,6 +823,113 @@ button:disabled {
 
 .recommendation-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.commute-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.commute-card {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.commute-card span {
+  color: #66736f;
+  font-size: 0.84rem;
+  font-weight: 850;
+}
+
+.commute-card strong {
+  display: block;
+  margin-top: 6px;
+  color: #17211f;
+  font-size: 1.45rem;
+  line-height: 1.25;
+}
+
+.commute-card dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.commute-card dl div {
+  min-height: 74px;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #f4f8f6;
+}
+
+.commute-card dt,
+.commute-card dd {
+  margin: 0;
+}
+
+.commute-card dt {
+  color: #66736f;
+  font-size: 0.75rem;
+  font-weight: 850;
+}
+
+.commute-card dd {
+  color: #17211f;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.reason-panel,
+.prep-panel {
+  display: grid;
+  gap: 12px;
+  padding: 22px;
+}
+
+.reason-panel h3,
+.reason-panel p,
+.prep-panel h3 {
+  margin: 0;
+}
+
+.reason-panel h3,
+.prep-panel h3 {
+  color: #17211f;
+  font-size: 1.2rem;
+}
+
+.reason-panel p {
+  color: #52625d;
+  line-height: 1.65;
+}
+
+.prep-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.prep-list span {
+  padding: 9px 12px;
+  border-radius: 999px;
+  background: #e3f1ed;
+  color: #287269;
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.prep-notes {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+  color: #52625d;
+  font-weight: 800;
+  line-height: 1.5;
 }
 
 .sun-care-panel {
@@ -1093,6 +1253,10 @@ input[type='range'] {
   font-size: 1.1rem;
 }
 
+.temp-login {
+  min-width: 240px;
+}
+
 .user-info {
   display: flex;
   align-items: center;
@@ -1132,8 +1296,10 @@ input[type='range'] {
   .hero-panel {
     grid-template-areas:
       "copy"
+      "summary"
+      "actions"
       "art"
-      "actions";
+      "notice";
     padding: 18px;
     min-height: auto;
   }
@@ -1144,8 +1310,22 @@ input[type='range'] {
 
   .weather-strip,
   .recommendation-grid,
+  .commute-grid,
   .field-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-tabs {
+    grid-template-columns: repeat(5, max-content);
+    overflow-x: auto;
+  }
+
+  .dashboard-tabs button {
+    min-width: 72px;
+  }
+
+  .commute-card dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .hourly-heading {
@@ -1160,13 +1340,13 @@ input[type='range'] {
   }
 
   .weather-art {
-    min-height: 360px;
+    min-height: 250px;
   }
 
   .outfit-character {
     right: 50%;
-    width: 190px;
-    height: 270px;
+    width: 160px;
+    height: 230px;
     transform: translateX(50%);
   }
 

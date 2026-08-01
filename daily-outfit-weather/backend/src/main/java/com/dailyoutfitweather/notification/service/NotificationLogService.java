@@ -14,8 +14,8 @@ import com.dailyoutfitweather.notification.domain.NotificationLog;
 import com.dailyoutfitweather.notification.domain.NotificationType;
 import com.dailyoutfitweather.notification.dto.NotificationLogResponse;
 import com.dailyoutfitweather.notification.repository.NotificationLogRepository;
-import com.dailyoutfitweather.recommendation.domain.OutfitRecommendation;
-import com.dailyoutfitweather.recommendation.repository.OutfitRecommendationRepository;
+import com.dailyoutfitweather.recommendation.dto.RecommendationResponse;
+import com.dailyoutfitweather.recommendation.service.RecommendationService;
 import com.dailyoutfitweather.user.domain.ChangeAlertOption;
 import com.dailyoutfitweather.user.domain.User;
 import com.dailyoutfitweather.user.domain.UserProfile;
@@ -25,18 +25,18 @@ import com.dailyoutfitweather.user.repository.UserProfileRepository;
 public class NotificationLogService {
 
 	private final UserProfileRepository userProfileRepository;
-	private final OutfitRecommendationRepository outfitRecommendationRepository;
+	private final RecommendationService recommendationService;
 	private final NotificationLogRepository notificationLogRepository;
 	private final Clock clock;
 
 	public NotificationLogService(
 		UserProfileRepository userProfileRepository,
-		OutfitRecommendationRepository outfitRecommendationRepository,
+		RecommendationService recommendationService,
 		NotificationLogRepository notificationLogRepository,
 		Clock clock
 	) {
 		this.userProfileRepository = userProfileRepository;
-		this.outfitRecommendationRepository = outfitRecommendationRepository;
+		this.recommendationService = recommendationService;
 		this.notificationLogRepository = notificationLogRepository;
 		this.clock = clock;
 	}
@@ -86,17 +86,20 @@ public class NotificationLogService {
 
 	private List<NotificationLog> createLogIfAbsent(UserProfile profile, LocalDate targetDate) {
 		User user = profile.getUser();
-		OutfitRecommendation recommendation = outfitRecommendationRepository
-			.findByUserIdAndTargetDate(user.getId(), targetDate)
-			.orElse(null);
-		String title = "오늘 뭐입지?";
-		String body = recommendation == null
-			? "오늘 추천을 확인할 시간입니다."
-			: recommendation.getSummaryMessage();
 		Instant scheduledAt = scheduledAt(profile, targetDate);
+		if (notificationLogRepository.existsByUserIdAndNotificationTypeAndScheduledAt(
+			user.getId(),
+			NotificationType.MORNING_REGULAR,
+			scheduledAt
+		)) {
+			return List.of();
+		}
+		RecommendationResponse recommendation = recommendationService.getOrCreateRecommendation(user, targetDate);
+		String title = "오늘 뭐입지?";
+		String body = NotificationRecommendationSummary.body(recommendation);
 		int inserted = notificationLogRepository.insertPendingLogIfAbsent(
 			user.getId(),
-			recommendation == null ? null : recommendation.getId(),
+			recommendation.id(),
 			NotificationType.MORNING_REGULAR.name(),
 			title,
 			body,

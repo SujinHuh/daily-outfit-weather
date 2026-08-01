@@ -18,6 +18,8 @@ public class WeatherConditionAnalyzer {
 		int minFeelsLikeTemperature = Math.min(commute.feelsLikeTemperature(), leaveWork.feelsLikeTemperature());
 		int maxFeelsLikeTemperature = Math.max(commute.feelsLikeTemperature(), leaveWork.feelsLikeTemperature());
 		int maxRainProbability = Math.max(commute.rainProbability(), leaveWork.rainProbability());
+		int maxHumidity = Math.max(commute.humidity(), leaveWork.humidity());
+		boolean humidHeat = maxFeelsLikeTemperature >= 28 && maxHumidity >= 70;
 		boolean snowExpected = hasPrecipitation(commute, PrecipitationType.SNOW)
 			|| hasPrecipitation(leaveWork, PrecipitationType.SNOW);
 		boolean leaveWorkRainExpected = isRainLike(leaveWork);
@@ -33,6 +35,8 @@ public class WeatherConditionAnalyzer {
 			minFeelsLikeTemperature,
 			maxFeelsLikeTemperature,
 			maxRainProbability,
+			maxHumidity,
+			humidHeat,
 			rainExpected,
 			leaveWorkRainExpected,
 			snowExpected,

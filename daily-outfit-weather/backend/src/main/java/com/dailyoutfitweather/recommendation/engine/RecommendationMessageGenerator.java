@@ -18,6 +18,12 @@ public class RecommendationMessageGenerator {
 		if (condition.strongWind()) {
 			return "바람이 많이 불어요. 바람막이를 챙겨요.";
 		}
+		if (condition.humidHeat() && recommendationTemperature >= 31) {
+			return "후텁지근하게 더워요. 시원하게 입고 물을 챙겨요.";
+		}
+		if (condition.humidHeat() && recommendationTemperature >= 28) {
+			return "습해서 더 덥게 느껴져요. 가볍게 입어요.";
+		}
 		if (recommendationTemperature >= 31) {
 			return "많이 더워요. 시원한 반팔티로 입어요.";
 		}
@@ -53,6 +59,9 @@ public class RecommendationMessageGenerator {
 		}
 		if (condition.strongWind()) {
 			builder.append(" 강한 바람으로 체감온도를 낮게 보정했습니다.");
+		}
+		if (condition.humidHeat()) {
+			builder.append(" 습도 ").append(condition.maxHumidity()).append("%로 후텁지근함을 반영했습니다.");
 		}
 		if (condition.rainExpected()) {
 			builder.append(" 강수 가능성을 반영했습니다.");

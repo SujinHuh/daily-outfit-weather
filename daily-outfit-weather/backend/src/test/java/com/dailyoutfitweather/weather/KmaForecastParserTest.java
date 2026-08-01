@@ -28,7 +28,8 @@ class KmaForecastParserTest {
 				new KmaForecastItem("TMP", "20260525", "0900", "20"),
 				new KmaForecastItem("POP", "20260525", "0900", "70"),
 				new KmaForecastItem("PTY", "20260525", "0900", "1"),
-				new KmaForecastItem("WSD", "20260525", "0900", "4.2")
+				new KmaForecastItem("WSD", "20260525", "0900", "4.2"),
+				new KmaForecastItem("REH", "20260525", "0900", "65")
 			),
 			LocalDate.of(2026, 5, 25),
 			LocalTime.of(8, 30)
@@ -39,6 +40,26 @@ class KmaForecastParserTest {
 		assertThat(snapshot.rainProbability()).isEqualTo(70);
 		assertThat(snapshot.precipitationType()).isEqualTo(PrecipitationType.RAIN);
 		assertThat(snapshot.windSpeed()).isEqualTo(4.2);
+		assertThat(snapshot.humidity()).isEqualTo(65);
+	}
+
+	@Test
+	void raisesFeelsLikeTemperatureForHumidHeat() {
+		WeatherSnapshot snapshot = parser.parse(
+			List.of(
+				new KmaForecastItem("TMP", "20260525", "1500", "31"),
+				new KmaForecastItem("POP", "20260525", "1500", "10"),
+				new KmaForecastItem("PTY", "20260525", "1500", "0"),
+				new KmaForecastItem("WSD", "20260525", "1500", "1.0"),
+				new KmaForecastItem("REH", "20260525", "1500", "82")
+			),
+			LocalDate.of(2026, 5, 25),
+			LocalTime.of(14, 30)
+		);
+
+		assertThat(snapshot.temperature()).isEqualTo(31);
+		assertThat(snapshot.feelsLikeTemperature()).isEqualTo(34);
+		assertThat(snapshot.humidity()).isEqualTo(82);
 	}
 
 	@Test

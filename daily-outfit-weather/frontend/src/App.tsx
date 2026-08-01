@@ -48,6 +48,7 @@ type RecommendationResponse = {
     leaveWorkFeelsLike: number
     rainProbability: number
     windSpeed: number
+    humidity?: number
     rainExpected?: boolean
     snowExpected?: boolean
   }
@@ -68,6 +69,13 @@ type ViewMode = 'loading' | 'login' | 'onboarding' | 'today' | 'settings'
 type FeedbackState = {
   temperature: 'COLD' | 'GOOD' | 'HOT' | null
   rain: 'NEEDED' | 'NOT_NEEDED' | null
+}
+
+type BrowserNotificationState = NotificationPermission | 'unsupported'
+type TodayTab = 'today' | 'commute' | 'outfit' | 'items' | 'feedback'
+
+type AuthOptionsResponse = {
+  tempLoginEnabled: boolean
 }
 
 const emptyLocation: LocationInput = {
@@ -112,6 +120,7 @@ const summerPreviewRecommendation: RecommendationResponse = {
     leaveWorkFeelsLike: 32,
     rainProbability: 10,
     windSpeed: 1.8,
+    humidity: 78,
     rainExpected: false,
     snowExpected: false,
   },
@@ -162,10 +171,38 @@ function App() {
   const [isFeedbackBusy, setIsFeedbackBusy] = useState(false)
   const [isBusy, setIsBusy] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
+  const [notificationState, setNotificationState] = useState<BrowserNotificationState>(() => currentNotificationState())
+  const [notificationMessage, setNotificationMessage] = useState('')
+  const [tempLoginEnabled, setTempLoginEnabled] = useState(false)
 
   useEffect(() => {
     void initialize()
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    if (!('permissions' in navigator) || !('Notification' in window)) return
+
+    let permissionStatus: PermissionStatus | null = null
+    const syncPermission = () => setNotificationState(currentNotificationState())
+    let isMounted = true
+
+    void navigator.permissions
+      .query({ name: 'notifications' as PermissionName })
+      .then((status) => {
+        if (!isMounted) return
+        permissionStatus = status
+        syncPermission()
+        status.addEventListener('change', syncPermission)
+      })
+      .catch(() => {
+        setNotificationState(currentNotificationState())
+      })
+
+    return () => {
+      isMounted = false
+      permissionStatus?.removeEventListener('change', syncPermission)
+    }
   }, [])
 
   const todayLabel = useMemo(() => {
@@ -180,6 +217,7 @@ function App() {
   async function initialize() {
     setViewMode('loading')
     setStatusMessage('')
+    await loadAuthOptions()
     if (new URLSearchParams(window.location.search).get('preview') === 'summer') {
       setUser({ email: summerPreviewProfile.email, nickname: summerPreviewProfile.nickname })
       setProfile(summerPreviewProfile)
@@ -217,6 +255,34 @@ function App() {
 
   const handleLogin = () => {
     window.location.href = '/oauth2/authorization/google'
+  }
+
+  const loadAuthOptions = async () => {
+    try {
+      const options = await request<AuthOptionsResponse>('/api/auth-options')
+      setTempLoginEnabled(options.tempLoginEnabled)
+    } catch {
+      setTempLoginEnabled(false)
+    }
+  }
+
+  const handleTempLogin = async () => {
+    const password = window.prompt('임시 로그인 비밀번호를 입력하세요.')
+    if (!password) return
+
+    try {
+      setIsBusy(true)
+      setStatusMessage('')
+      await request('/api/temp-login', {
+        method: 'POST',
+        body: JSON.stringify({ password }),
+      })
+      await initialize()
+    } catch (error) {
+      setStatusMessage(errorMessage(error))
+    } finally {
+      setIsBusy(false)
+    }
   }
 
   const handleLogout = async () => {
@@ -266,6 +332,58 @@ function App() {
       setStatusMessage(errorMessage(error))
     } finally {
       setIsBusy(false)
+    }
+  }
+
+  async function handleRecommendationNotification() {
+    setNotificationMessage('')
+
+    if (!recommendation) {
+      setNotificationMessage('알림으로 보낼 오늘 추천이 아직 없습니다.')
+      return
+    }
+
+    if (!('Notification' in window)) {
+      setNotificationState('unsupported')
+      setNotificationMessage('이 브라우저는 알림을 지원하지 않습니다.')
+      return
+    }
+
+    if (!window.isSecureContext) {
+      setNotificationMessage('알림은 HTTPS 또는 localhost 환경에서 사용할 수 있습니다.')
+      return
+    }
+
+    let permission = Notification.permission
+    if (permission === 'default') {
+      permission = await Notification.requestPermission()
+    }
+
+    setNotificationState(permission)
+
+    if (permission !== 'granted') {
+      setNotificationMessage('브라우저 알림 권한이 허용되지 않았습니다.')
+      return
+    }
+
+    const notificationOptions: NotificationOptions = {
+      body: notificationBody(recommendation),
+      icon: '/mascot/mild.png',
+      badge: '/favicon.svg',
+      tag: `daily-outfit-weather-${recommendation.targetDate}`,
+      data: { url: '/' },
+    }
+
+    try {
+      const registration = await readyServiceWorkerRegistration()
+      if (registration) {
+        await registration.showNotification('오늘 뭐입지', notificationOptions)
+      } else {
+        new Notification('오늘 뭐입지', notificationOptions)
+      }
+      setNotificationMessage('오늘 추천 알림을 보냈습니다.')
+    } catch (error) {
+      setNotificationMessage(errorMessage(error))
     }
   }
 
@@ -381,6 +499,11 @@ function App() {
           <button className="primary-button google-login" type="button" onClick={handleLogin}>
             Google로 시작하기
           </button>
+          {tempLoginEnabled && (
+            <button className="secondary-button temp-login" type="button" onClick={handleTempLogin} disabled={isBusy}>
+              임시 로그인
+            </button>
+          )}
         </section>
       )
     }
@@ -420,6 +543,9 @@ function App() {
         onFeedbackChange={setFeedback}
         onFeedbackSubmit={submitFeedback}
         isFeedbackBusy={isFeedbackBusy}
+        notificationState={notificationState}
+        notificationMessage={notificationMessage}
+        onNotify={handleRecommendationNotification}
       />
     )
   }
@@ -837,6 +963,9 @@ type TodayDashboardProps = {
   onFeedbackChange: (feedback: FeedbackState) => void
   onFeedbackSubmit: () => void
   isFeedbackBusy: boolean
+  notificationState: BrowserNotificationState
+  notificationMessage: string
+  onNotify: () => void
 }
 
 function TodayDashboard({
@@ -850,7 +979,12 @@ function TodayDashboard({
   onFeedbackChange,
   onFeedbackSubmit,
   isFeedbackBusy,
+  notificationState,
+  notificationMessage,
+  onNotify,
 }: TodayDashboardProps) {
+  const [activeTab, setActiveTab] = useState<TodayTab>('today')
+
   if (!recommendation) {
     return (
       <section className="empty-state">
@@ -868,6 +1002,24 @@ function TodayDashboard({
     ?? recommendation.weatherSummary.rainProbability >= 60)
   const isCloudy = isRainy || isSnowy
   const isNight = isNightInSeoul()
+  const humidity = recommendation.weatherSummary.humidity ?? 50
+  const itemList = recommendation.itemRecommendation
+    ? recommendation.itemRecommendation.split(',').map((item) => item.trim()).filter(Boolean)
+    : ['추가 준비물 없이 가볍게 출발']
+  const weatherPrepItems = [
+    isRainy ? '비 소식이 있어 우산을 먼저 챙겨요.' : null,
+    isSnowy ? '눈길 대비로 미끄럽지 않은 신발이 좋아요.' : null,
+    isWindy ? '바람이 있어 가벼운 겉옷을 고정하기 쉬운 차림이 좋아요.' : null,
+    humidity >= 70 ? '습도가 높아 통풍 잘 되는 소재가 편해요.' : null,
+    recommendation.weatherSummary.leaveWorkFeelsLike >= 28 ? '퇴근길까지 더울 수 있어 물을 챙겨요.' : null,
+  ].filter((item): item is string => item != null)
+  const todayTabs: Array<{ id: TodayTab; label: string }> = [
+    { id: 'today', label: '오늘' },
+    { id: 'commute', label: '출퇴근' },
+    { id: 'outfit', label: '옷차림' },
+    { id: 'items', label: '준비물' },
+    { id: 'feedback', label: '피드백' },
+  ]
 
   return (
     <div className="today-layout">
@@ -913,138 +1065,211 @@ function TodayDashboard({
           <button className="secondary-button" type="button" onClick={onRefresh} disabled={isBusy}>
             새로고침
           </button>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={onNotify}
+            disabled={notificationState === 'unsupported' || notificationState === 'denied'}
+          >
+            {notificationButtonLabel(notificationState)}
+          </button>
           <button className="secondary-button" type="button" onClick={onSettings}>
             설정 변경
           </button>
         </div>
+        <p className="notification-note" aria-live="polite">
+          {notificationMessage || notificationHelpText(notificationState)}
+        </p>
       </section>
 
-      <section className="scroll-guide" aria-label="상세 정보 안내">
-        <span>아래로 내려서 자세히 보기</span>
-        <strong>↓</strong>
-      </section>
-
-      <section className="section-intro">
-        <p className="panel-kicker">오늘 날씨 해석</p>
-        <h3>숫자보다 먼저, 외출할 때 느껴질 날씨예요.</h3>
-      </section>
-
-      <section className="weather-strip" aria-label="날씨 요약">
-        <Metric
-          label="출근길"
-          value={`${recommendation.weatherSummary.commuteFeelsLike}°`}
-          description={temperatureDescription(recommendation.weatherSummary.commuteFeelsLike)}
-          detailLabel="체감"
-        />
-        <Metric
-          label="퇴근길"
-          value={`${recommendation.weatherSummary.leaveWorkFeelsLike}°`}
-          description={temperatureDescription(recommendation.weatherSummary.leaveWorkFeelsLike)}
-          detailLabel="체감"
-        />
-        <Metric
-          label="비 소식"
-          value={`${recommendation.weatherSummary.rainProbability}%`}
-          description={rainDescription(recommendation.weatherSummary.rainProbability)}
-          detailLabel="강수확률"
-        />
-        <Metric
-          label="바람"
-          value={`${recommendation.weatherSummary.windSpeed}m/s`}
-          description={windDescription(recommendation.weatherSummary.windSpeed)}
-          detailLabel="풍속"
-        />
-      </section>
-
-      {recommendation.hourlyForecast && recommendation.hourlyForecast.length > 0 && (
-        <HourlyWeather forecast={recommendation.hourlyForecast} />
-      )}
-
-      <section className="section-intro">
-        <p className="panel-kicker">준비 완료</p>
-        <h3>옷장에서 챙길 것만 빠르게 확인하세요.</h3>
-      </section>
-
-      <section className="recommendation-grid" aria-label="오늘 추천">
-        <RecommendationBlock label="상의" value={recommendation.topRecommendation} tone="green" />
-        <RecommendationBlock label="외투" value={recommendation.outerRecommendation || '없음'} tone="blue" />
-        <RecommendationBlock label="준비물" value={recommendation.itemRecommendation || '가볍게 출발'} tone="amber" />
-      </section>
-
-      <section className="sun-care-panel" aria-label="자외선 대비 안내">
-        <div>
-          <p className="panel-kicker">햇빛 대비</p>
-          <h3>자외선이 높은 날에는 햇빛 준비물도 알려드릴게요.</h3>
-          <p>별도 자외선 API 연동 후, 필요한 날에만 최대 3개를 우선순위로 추천합니다.</p>
-        </div>
-        <div className="sun-care-items" aria-label="자외선 대비 준비물">
-          <span>선크림</span>
-          <span>선글라스</span>
-          <span>양산</span>
-        </div>
-      </section>
-
-      <section className="section-intro">
-        <p className="panel-kicker">웨더웨어 캐릭터</p>
-        <h3>날씨에 따라 이렇게 준비해요.</h3>
-      </section>
-
-      <MascotGallery />
-
-      <section className="feedback-panel">
-        <div>
-          <p className="panel-kicker">피드백</p>
-          <h3>{profile?.nickname ? `${profile.nickname}님에게 맞았나요?` : '오늘 추천은 어땠나요?'}</h3>
-        </div>
-        <div className="feedback-groups">
-          <div className="feedback-buttons" aria-label="체감 피드백">
+      <section className="tabbed-dashboard" aria-label="오늘 추천 상세">
+        <div className="dashboard-tabs" role="tablist" aria-label="오늘 추천 보기">
+          {todayTabs.map((tab) => (
             <button
+              key={tab.id}
               type="button"
-              className={feedback.temperature === 'COLD' ? 'active' : ''}
-              onClick={() => onFeedbackChange({ ...feedback, temperature: 'COLD' })}
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              className={activeTab === tab.id ? 'active' : ''}
+              onClick={() => setActiveTab(tab.id)}
             >
-              추웠어요
+              {tab.label}
             </button>
-            <button
-              type="button"
-              className={feedback.temperature === 'GOOD' ? 'active' : ''}
-              onClick={() => onFeedbackChange({ ...feedback, temperature: 'GOOD' })}
-            >
-              딱 좋아요
-            </button>
-            <button
-              type="button"
-              className={feedback.temperature === 'HOT' ? 'active' : ''}
-              onClick={() => onFeedbackChange({ ...feedback, temperature: 'HOT' })}
-            >
-              더웠어요
-            </button>
+          ))}
+        </div>
+
+        {activeTab === 'today' && (
+          <div className="tab-panel" role="tabpanel">
+            <section className="weather-strip" aria-label="날씨 요약">
+              <Metric
+                label="출근길"
+                value={`${recommendation.weatherSummary.commuteFeelsLike}°`}
+                description={temperatureDescription(recommendation.weatherSummary.commuteFeelsLike)}
+                detailLabel="체감"
+              />
+              <Metric
+                label="퇴근길"
+                value={`${recommendation.weatherSummary.leaveWorkFeelsLike}°`}
+                description={temperatureDescription(recommendation.weatherSummary.leaveWorkFeelsLike)}
+                detailLabel="체감"
+              />
+              <Metric
+                label="비 소식"
+                value={`${recommendation.weatherSummary.rainProbability}%`}
+                description={rainDescription(recommendation.weatherSummary.rainProbability)}
+                detailLabel="강수확률"
+              />
+              <Metric
+                label="바람"
+                value={`${recommendation.weatherSummary.windSpeed}m/s`}
+                description={windDescription(recommendation.weatherSummary.windSpeed)}
+                detailLabel="풍속"
+              />
+              <Metric
+                label="습도"
+                value={`${humidity}%`}
+                description={humidityDescription(humidity, recommendation.weatherSummary.leaveWorkFeelsLike)}
+                detailLabel="최고"
+              />
+            </section>
+            {recommendation.hourlyForecast && recommendation.hourlyForecast.length > 0 && (
+              <HourlyWeather forecast={recommendation.hourlyForecast} />
+            )}
           </div>
-          <div className="feedback-buttons" aria-label="우산 피드백">
-            <button
-              type="button"
-              className={feedback.rain === 'NEEDED' ? 'active' : ''}
-              onClick={() => onFeedbackChange({ ...feedback, rain: 'NEEDED' })}
-            >
-              우산 필요
-            </button>
-            <button
-              type="button"
-              className={feedback.rain === 'NOT_NEEDED' ? 'active' : ''}
-              onClick={() => onFeedbackChange({ ...feedback, rain: 'NOT_NEEDED' })}
-            >
-              우산 적절
-            </button>
+        )}
+
+        {activeTab === 'commute' && (
+          <div className="tab-panel" role="tabpanel">
+            <section className="commute-grid" aria-label="출퇴근 날씨">
+              <CommuteCard
+                label="출근길"
+                temperature={recommendation.weatherSummary.commuteFeelsLike}
+                description={temperatureDescription(recommendation.weatherSummary.commuteFeelsLike)}
+                humidity={humidity}
+                rainProbability={recommendation.weatherSummary.rainProbability}
+                windSpeed={recommendation.weatherSummary.windSpeed}
+              />
+              <CommuteCard
+                label="퇴근길"
+                temperature={recommendation.weatherSummary.leaveWorkFeelsLike}
+                description={temperatureDescription(recommendation.weatherSummary.leaveWorkFeelsLike)}
+                humidity={humidity}
+                rainProbability={recommendation.weatherSummary.rainProbability}
+                windSpeed={recommendation.weatherSummary.windSpeed}
+              />
+            </section>
+            {recommendation.hourlyForecast && recommendation.hourlyForecast.length > 0 && (
+              <HourlyWeather forecast={recommendation.hourlyForecast} />
+            )}
           </div>
-          <button
-            className="primary-button feedback-submit"
-            type="button"
-            onClick={onFeedbackSubmit}
-            disabled={isFeedbackBusy || (!feedback.temperature && !feedback.rain)}
-          >
-            저장
-          </button>
-        </div>
+        )}
+
+        {activeTab === 'outfit' && (
+          <div className="tab-panel" role="tabpanel">
+            <section className="recommendation-grid" aria-label="오늘 추천">
+              <RecommendationBlock label="상의" value={recommendation.topRecommendation} tone="green" />
+              <RecommendationBlock label="하의/외투" value={recommendation.outerRecommendation || '없음'} tone="blue" />
+              <RecommendationBlock label="핵심 준비" value={recommendation.itemRecommendation || '가볍게 출발'} tone="amber" />
+            </section>
+            <section className="reason-panel" aria-label="추천 이유">
+              <p className="panel-kicker">추천 이유</p>
+              <h3>{recommendation.summaryMessage}</h3>
+              <p>{recommendation.reason}</p>
+            </section>
+          </div>
+        )}
+
+        {activeTab === 'items' && (
+          <div className="tab-panel" role="tabpanel">
+            <section className="prep-panel" aria-label="준비물">
+              <div>
+                <p className="panel-kicker">준비물</p>
+                <h3>날씨에 따라 이렇게 준비해요.</h3>
+              </div>
+              <div className="prep-list">
+                {itemList.map((item) => <span key={item}>{item}</span>)}
+              </div>
+              {weatherPrepItems.length > 0 && (
+                <ul className="prep-notes">
+                  {weatherPrepItems.map((item) => <li key={item}>{item}</li>)}
+                </ul>
+              )}
+            </section>
+            <section className="sun-care-panel" aria-label="자외선 대비 안내">
+              <div>
+                <p className="panel-kicker">햇빛 대비</p>
+                <h3>자외선이 높은 날에는 햇빛 준비물도 알려드릴게요.</h3>
+                <p>별도 자외선 API 연동 후, 필요한 날에만 최대 3개를 우선순위로 추천합니다.</p>
+              </div>
+              <div className="sun-care-items" aria-label="자외선 대비 준비물">
+                <span>선크림</span>
+                <span>선글라스</span>
+                <span>양산</span>
+              </div>
+            </section>
+            <MascotGallery />
+          </div>
+        )}
+
+        {activeTab === 'feedback' && (
+          <div className="tab-panel" role="tabpanel">
+            <section className="feedback-panel">
+              <div>
+                <p className="panel-kicker">피드백</p>
+                <h3>{profile?.nickname ? `${profile.nickname}님에게 맞았나요?` : '오늘 추천은 어땠나요?'}</h3>
+              </div>
+              <div className="feedback-groups">
+                <div className="feedback-buttons" aria-label="체감 피드백">
+                  <button
+                    type="button"
+                    className={feedback.temperature === 'COLD' ? 'active' : ''}
+                    onClick={() => onFeedbackChange({ ...feedback, temperature: 'COLD' })}
+                  >
+                    추웠어요
+                  </button>
+                  <button
+                    type="button"
+                    className={feedback.temperature === 'GOOD' ? 'active' : ''}
+                    onClick={() => onFeedbackChange({ ...feedback, temperature: 'GOOD' })}
+                  >
+                    딱 좋아요
+                  </button>
+                  <button
+                    type="button"
+                    className={feedback.temperature === 'HOT' ? 'active' : ''}
+                    onClick={() => onFeedbackChange({ ...feedback, temperature: 'HOT' })}
+                  >
+                    더웠어요
+                  </button>
+                </div>
+                <div className="feedback-buttons" aria-label="우산 피드백">
+                  <button
+                    type="button"
+                    className={feedback.rain === 'NEEDED' ? 'active' : ''}
+                    onClick={() => onFeedbackChange({ ...feedback, rain: 'NEEDED' })}
+                  >
+                    우산 필요
+                  </button>
+                  <button
+                    type="button"
+                    className={feedback.rain === 'NOT_NEEDED' ? 'active' : ''}
+                    onClick={() => onFeedbackChange({ ...feedback, rain: 'NOT_NEEDED' })}
+                  >
+                    우산 적절
+                  </button>
+                </div>
+                <button
+                  className="primary-button feedback-submit"
+                  type="button"
+                  onClick={onFeedbackSubmit}
+                  disabled={isFeedbackBusy || (!feedback.temperature && !feedback.rain)}
+                >
+                  저장
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
       </section>
     </div>
   )
@@ -1217,6 +1442,49 @@ function Metric({ label, value, description, detailLabel }: { label: string; val
   )
 }
 
+function CommuteCard({
+  label,
+  temperature,
+  description,
+  humidity,
+  rainProbability,
+  windSpeed,
+}: {
+  label: string
+  temperature: number
+  description: string
+  humidity: number
+  rainProbability: number
+  windSpeed: number
+}) {
+  return (
+    <article className="commute-card">
+      <div>
+        <span>{label}</span>
+        <strong>{description}</strong>
+      </div>
+      <dl>
+        <div>
+          <dt>체감</dt>
+          <dd>{temperature}°</dd>
+        </div>
+        <div>
+          <dt>습도</dt>
+          <dd>{humidity}%</dd>
+        </div>
+        <div>
+          <dt>비</dt>
+          <dd>{rainProbability}%</dd>
+        </div>
+        <div>
+          <dt>바람</dt>
+          <dd>{windSpeed}m/s</dd>
+        </div>
+      </dl>
+    </article>
+  )
+}
+
 function RecommendationBlock({ label, value, tone }: { label: string; value: string; tone: 'green' | 'blue' | 'amber' }) {
   return (
     <div className={`recommendation-block ${tone}`}>
@@ -1224,6 +1492,42 @@ function RecommendationBlock({ label, value, tone }: { label: string; value: str
       <strong>{value}</strong>
     </div>
   )
+}
+
+function currentNotificationState(): BrowserNotificationState {
+  if (!('Notification' in window)) return 'unsupported'
+  return Notification.permission
+}
+
+function notificationButtonLabel(state: BrowserNotificationState) {
+  if (state === 'granted') return '지금 알림 보내기'
+  if (state === 'denied') return '알림 차단됨'
+  if (state === 'unsupported') return '알림 미지원'
+  return '알림 테스트하기'
+}
+
+function notificationHelpText(state: BrowserNotificationState) {
+  if (state === 'granted') return '버튼을 누르면 지금 볼 수 있는 오늘 요약 알림을 보냅니다.'
+  if (state === 'denied') return '알림이 차단되어 있습니다. 브라우저 사이트 설정에서 권한을 허용해 주세요.'
+  if (state === 'unsupported') return '현재 브라우저에서는 알림을 사용할 수 없습니다.'
+  return '버튼을 누르면 브라우저 알림 권한을 요청하고 오늘 요약을 짧게 보여줍니다.'
+}
+
+function notificationBody(recommendation: RecommendationResponse) {
+  const outfit = [recommendation.topRecommendation, recommendation.outerRecommendation].filter(Boolean).join(' + ')
+  const item = recommendation.itemRecommendation ? ` 준비물: ${recommendation.itemRecommendation}` : ''
+  return `${recommendation.summaryMessage}${outfit ? ` ${outfit}` : ''}${item}`.slice(0, 180)
+}
+
+async function readyServiceWorkerRegistration() {
+  if (!('serviceWorker' in navigator)) return null
+
+  return Promise.race<ServiceWorkerRegistration | null>([
+    navigator.serviceWorker.ready,
+    new Promise((resolve) => {
+      window.setTimeout(() => resolve(null), 1500)
+    }),
+  ])
 }
 
 function normalizeTime(value: string) {
@@ -1238,6 +1542,13 @@ function temperatureDescription(temperature: number) {
   if (temperature >= 12) return '가벼운 외투가 필요해요'
   if (temperature >= 8) return '코트를 챙겨 입으세요'
   return '따뜻하게 입으세요'
+}
+
+function humidityDescription(humidity: number, feelsLikeTemperature: number) {
+  if (humidity >= 80 && feelsLikeTemperature >= 28) return '후텁지근해요'
+  if (humidity >= 70 && feelsLikeTemperature >= 28) return '습해서 더 더워요'
+  if (humidity >= 70) return '습도가 높아요'
+  return '쾌적한 편이에요'
 }
 
 function rainDescription(probability: number) {

@@ -82,11 +82,11 @@ public class WeatherSnapshotProvider {
 	}
 
 	private WeatherSnapshot defaultCommuteWeather() {
-		return new WeatherSnapshot(17, 16, 20, PrecipitationType.NONE, 2.4);
+		return new WeatherSnapshot(17, 16, 20, PrecipitationType.NONE, 2.4, 55);
 	}
 
 	private WeatherSnapshot defaultLeaveWorkWeather() {
-		return new WeatherSnapshot(14, 13, 30, PrecipitationType.NONE, 2.8);
+		return new WeatherSnapshot(14, 13, 30, PrecipitationType.NONE, 2.8, 60);
 	}
 
 	public record WeatherSnapshots(WeatherSnapshot commuteWeather, WeatherSnapshot leaveWorkWeather) {
