@@ -1020,6 +1020,7 @@ function TodayDashboard({
     { id: 'items', label: '준비물' },
     { id: 'feedback', label: '피드백' },
   ]
+  const outfitOptions = outfitSuggestionOptions(recommendation, humidity)
 
   return (
     <div className="today-layout">
@@ -1028,7 +1029,7 @@ function TodayDashboard({
           <p className="date-label">{todayLabel}</p>
           <p className="outfit-label">오늘의 웨더웨어</p>
           <h2>{recommendation.summaryMessage}</h2>
-          <p>{recommendation.reason}</p>
+          <ReadableReason reason={recommendation.reason} compact />
         </div>
         <div className={`weather-art ${isNight ? 'is-night' : ''}`} aria-hidden="true">
           {!isCloudy && !isNight && <span className="sun" />}
@@ -1171,10 +1172,28 @@ function TodayDashboard({
               <RecommendationBlock label="하의/외투" value={recommendation.outerRecommendation || '없음'} tone="blue" />
               <RecommendationBlock label="핵심 준비" value={recommendation.itemRecommendation || '가볍게 출발'} tone="amber" />
             </section>
+            <section className="outfit-options-panel" aria-label="옷차림 선택지">
+              <div>
+                <p className="panel-kicker">선택지</p>
+                <h3>옷장에서 이렇게 골라보세요.</h3>
+              </div>
+              <div className="outfit-option-grid">
+                {outfitOptions.map((option) => (
+                  <article className="outfit-option-card" key={`${option.label}-${option.value}`}>
+                    <span className="outfit-option-icon" aria-hidden="true">{option.icon}</span>
+                    <div>
+                      <span>{option.label}</span>
+                      <strong>{option.value}</strong>
+                      <p>{option.note}</p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
             <section className="reason-panel" aria-label="추천 이유">
               <p className="panel-kicker">추천 이유</p>
               <h3>{recommendation.summaryMessage}</h3>
-              <p>{recommendation.reason}</p>
+              <ReadableReason reason={recommendation.reason} />
             </section>
           </div>
         )}
@@ -1442,6 +1461,62 @@ function Metric({ label, value, description, detailLabel }: { label: string; val
   )
 }
 
+function ReadableReason({ reason, compact = false }: { reason: string; compact?: boolean }) {
+  const lines = reasonParts(reason)
+  return (
+    <div className={`readable-reason ${compact ? 'compact' : ''}`}>
+      {lines.map((line) => (
+        <p key={line.text}>
+          <span aria-hidden="true">{line.icon}</span>
+          <strong>{line.emphasis}</strong>
+          {line.rest && <> {line.rest}</>}
+        </p>
+      ))}
+    </div>
+  )
+}
+
+function reasonParts(reason: string) {
+  return reason
+    .split(/(?<=\.)\s+/)
+    .map((text) => text.trim())
+    .filter(Boolean)
+    .map((text) => {
+      if (text.includes('추천 기준')) {
+        const match = text.match(/(추천 기준 체감온도는 \d+도입니다\.?)(.*)/)
+        return {
+          icon: '🌡️',
+          emphasis: match?.[1] ?? text,
+          rest: match?.[2]?.trim() ?? '',
+          text,
+        }
+      }
+      if (text.includes('습도')) {
+        const match = text.match(/(습도 \d+%)(.*)/)
+        return {
+          icon: '💧',
+          emphasis: match?.[1] ?? '습도 반영',
+          rest: match?.[2]?.trim() ?? text,
+          text,
+        }
+      }
+      if (text.includes('수분') || text.includes('물')) {
+        return {
+          icon: '🥤',
+          emphasis: '수분 보충',
+          rest: text,
+          text,
+        }
+      }
+      return {
+        icon: '✨',
+        emphasis: text,
+        rest: '',
+        text,
+      }
+    })
+}
+
 function CommuteCard({
   label,
   temperature,
@@ -1483,6 +1558,45 @@ function CommuteCard({
       </dl>
     </article>
   )
+}
+
+function outfitSuggestionOptions(recommendation: RecommendationResponse, humidity: number) {
+  const options = [
+    {
+      label: '기본 상의',
+      value: recommendation.topRecommendation || '반팔티',
+      note: '가장 먼저 고를 옷이에요.',
+      icon: '👕',
+    },
+  ]
+
+  if (recommendation.weatherSummary.leaveWorkFeelsLike >= 28 || humidity >= 70) {
+    options.push(
+      {
+        label: '시원한 대안',
+        value: '린넨 셔츠',
+        note: '습한 날 통풍이 좋아요.',
+        icon: '🧺',
+      },
+      {
+        label: '소재 추천',
+        value: '얇은 면/기능성 티',
+        note: '땀이 나도 답답함이 덜해요.',
+        icon: '🌬️',
+      },
+    )
+  }
+
+  if (recommendation.outerRecommendation) {
+    options.push({
+      label: '하의/외투',
+      value: recommendation.outerRecommendation,
+      note: '퇴근길까지 고려한 선택이에요.',
+      icon: '🩳',
+    })
+  }
+
+  return options
 }
 
 function RecommendationBlock({ label, value, tone }: { label: string; value: string; tone: 'green' | 'blue' | 'amber' }) {
