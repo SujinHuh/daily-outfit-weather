@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.dailyoutfitweather.global.security.LoginUser;
 import com.dailyoutfitweather.recommendation.dto.RecommendationResponse;
+import com.dailyoutfitweather.recommendation.dto.WeeklyRecommendationResponse;
 import com.dailyoutfitweather.recommendation.service.RecommendationService;
 import com.dailyoutfitweather.user.domain.User;
 
@@ -28,5 +29,10 @@ public class RecommendationController {
 	@PostMapping("/today")
 	RecommendationResponse createTodayRecommendation(@LoginUser User user) {
 		return recommendationService.getOrCreateTodayRecommendation(user);
+	}
+
+	@GetMapping("/weekly")
+	WeeklyRecommendationResponse getWeeklyRecommendation(@LoginUser User user) {
+		return recommendationService.getWeeklyRecommendation(user);
 	}
 }

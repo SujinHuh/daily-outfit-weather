@@ -29,10 +29,10 @@ server:
   forward-headers-strategy: framework
   servlet:
     session:
-      timeout: ${SESSION_TIMEOUT:30m}
+      timeout: ${SESSION_TIMEOUT:30d}
       cookie:
         http-only: true
-        max-age: ${SESSION_COOKIE_MAX_AGE:-1}
+        max-age: ${SESSION_COOKIE_MAX_AGE:30d}
         secure: ${SESSION_COOKIE_SECURE:false}
         same-site: ${SESSION_COOKIE_SAME_SITE:lax}
 
@@ -57,6 +57,6 @@ app:
 
 kma:
   service-key: ${KMA_SERVICE_KEY:}
-  base-url: ${KMA_BASE_URL:http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0}
+  base-url: ${KMA_BASE_URL:https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0}
   connect-timeout: ${KMA_CONNECT_TIMEOUT:2s}
   read-timeout: ${KMA_READ_TIMEOUT:3s}

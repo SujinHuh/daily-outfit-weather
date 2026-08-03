@@ -146,6 +146,7 @@ daily-outfit-weather
 - [추천 로직](docs/recommendation-logic.md)
 - [알림 정책](docs/notification-policy.md)
 - [아키텍처](docs/architecture.md)
+- [영향도 분석 가이드](docs/impact-analysis-guide.md)
 - [개인정보 처리 메모](docs/privacy-policy-notes.md)
 - [개발 순서](docs/development-plan.md)
 - [로컬 개발 환경](docs/local-development.md)
@@ -158,6 +159,7 @@ daily-outfit-weather
 
 ## 개발 원칙
 
+- **신규 기능 구현 전 필수 트리거**: 어떠한 기능 코드를 작성하기 전에도 반드시 [`docs/impact-analysis-guide.md`](docs/impact-analysis-guide.md)를 먼저 확인(`view_file`)하여 7대 사전 영향도를 평가하고 하위 호환 대책을 수립합니다.
 - MVP 범위 밖 기능을 먼저 구현하지 않습니다.
 - 추천 로직은 컨트롤러나 서비스에 직접 하드코딩하지 않고 별도 엔진으로 분리합니다.
 - 알림 생성과 실제 발송 책임을 분리합니다.

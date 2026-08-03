@@ -95,7 +95,9 @@ public class AuthController {
 		SecurityContext context = SecurityContextHolder.createEmptyContext();
 		context.setAuthentication(authentication);
 		SecurityContextHolder.setContext(context);
-		servletRequest.getSession(true).setAttribute(
+		jakarta.servlet.http.HttpSession session = servletRequest.getSession(true);
+		session.setMaxInactiveInterval(30 * 24 * 60 * 60);
+		session.setAttribute(
 			HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
 			context
 		);

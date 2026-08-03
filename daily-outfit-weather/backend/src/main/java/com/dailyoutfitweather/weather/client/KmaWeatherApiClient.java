@@ -17,11 +17,14 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import com.dailyoutfitweather.recommendation.dto.WeatherSnapshot;
 import com.dailyoutfitweather.weather.dto.KmaForecastItem;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Component
 public class KmaWeatherApiClient implements WeatherApiClient {
 
+	private static final Logger log = LoggerFactory.getLogger(KmaWeatherApiClient.class);
 	private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.BASIC_ISO_DATE;
 
 	private final RestClient restClient;
@@ -37,7 +40,7 @@ public class KmaWeatherApiClient implements WeatherApiClient {
 		KmaForecastParser forecastParser,
 		Clock clock,
 		@Value("${kma.service-key:}") String serviceKey,
-		@Value("${kma.base-url:http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0}") String baseUrl,
+		@Value("${kma.base-url:https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0}") String baseUrl,
 		@Value("${kma.connect-timeout:2s}") Duration connectTimeout,
 		@Value("${kma.read-timeout:3s}") Duration readTimeout
 	) {
@@ -83,7 +86,10 @@ public class KmaWeatherApiClient implements WeatherApiClient {
 				.retrieve()
 				.body(KmaForecastResponse.class);
 			List<KmaForecastItem> items = extractItems(response);
-			return forecastParser.parse(items, targetDate, targetTime);
+			WeatherSnapshot snapshot = forecastParser.parse(items, targetDate, targetTime);
+			log.info("Successfully fetched KMA weather forecast for grid (nx={}, ny={}), targetDate={}, targetTime={}: temperature={}, feelsLike={}",
+				nx, ny, targetDate, targetTime, snapshot.temperature(), snapshot.feelsLikeTemperature());
+			return snapshot;
 		}
 		catch (WeatherApiException exception) {
 			throw exception;

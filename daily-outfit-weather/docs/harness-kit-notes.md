@@ -38,9 +38,10 @@ MVP bootstrap 동안은 정식 Harness Kit overlay를 전부 도입하지 않고
 
 MVP bootstrap 기간에는 partial overlay를 공식 운영 기준으로 사용합니다.
 
-- canonical 문서: `docs/architecture.md`, `docs/decisions/README.md`, `docs/testing-strategy.md`
+- canonical 문서: `docs/architecture.md`, `docs/decisions/README.md`, `docs/testing-strategy.md`, `docs/impact-analysis-guide.md`
 - overlay 보조 문서: `docs/project/*`
 - task workspace: `docs/task/<task_id>`
+- **필수 사전 트리거**: 모든 구현 작업은 코드 작성 전 `docs/impact-analysis-guide.md`를 조회(`view_file`)하여 7대 사전 영향도 평가 및 예방 대책을 수립한 후 Task를 진행합니다.
 - 모든 구현 작업은 task workspace의 `issue.md`, `requirements.md`, `plan.md`, `phase_status.md`, `implementation_notes.md`, `validation_report.md`를 기준으로 진행합니다.
 - 정식 Harness Kit overlay 후보 구조는 참고용이며, 현재 작업 기준이 아닙니다.
 

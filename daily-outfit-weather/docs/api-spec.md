@@ -184,6 +184,39 @@ POST /api/recommendations/today
 - 오늘 추천이 이미 있으면 기존 추천을 반환합니다.
 - 오늘 추천이 없으면 사용자 프로필과 날씨 데이터를 기준으로 추천을 생성하고 저장합니다.
 
+### 주간(7일) 날씨 및 옷차림 예보 조회
+
+```http
+GET /api/recommendations/weekly
+```
+
+Response:
+
+```json
+{
+  "dailyForecasts": [
+    {
+      "date": "2026-08-01",
+      "dayOfWeek": "오늘(토)",
+      "minTemperature": 21,
+      "maxTemperature": 29,
+      "rainProbability": 60,
+      "weatherCondition": "RAIN",
+      "outfitTags": ["반팔티", "시원한 하의", "우산 필수"]
+    },
+    {
+      "date": "2026-08-02",
+      "dayOfWeek": "내일(일)",
+      "minTemperature": 22,
+      "maxTemperature": 31,
+      "rainProbability": 20,
+      "weatherCondition": "CLEAR",
+      "outfitTags": ["반팔티", "시원한 하의"]
+    }
+  ]
+}
+```
+
 ## Feedback
 
 ### 피드백 등록

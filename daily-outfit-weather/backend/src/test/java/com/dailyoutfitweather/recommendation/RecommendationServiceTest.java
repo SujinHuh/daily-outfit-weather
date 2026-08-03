@@ -23,6 +23,7 @@ import com.dailyoutfitweather.recommendation.domain.OutfitRecommendation;
 import com.dailyoutfitweather.recommendation.domain.RecommendationWeatherSnapshot;
 import com.dailyoutfitweather.recommendation.dto.PrecipitationType;
 import com.dailyoutfitweather.recommendation.dto.RecommendationInput;
+import com.dailyoutfitweather.recommendation.engine.WeeklyOutfitEngine;
 import com.dailyoutfitweather.recommendation.dto.RecommendationResponse;
 import com.dailyoutfitweather.recommendation.dto.RecommendationResult;
 import com.dailyoutfitweather.recommendation.dto.WeatherSnapshot;
@@ -57,6 +58,8 @@ class RecommendationServiceTest {
 	@Mock
 	private RuleBasedRecommendationEngine recommendationEngine;
 
+	private final WeeklyOutfitEngine weeklyOutfitEngine = new WeeklyOutfitEngine();
+
 	private final Clock clock = Clock.fixed(Instant.parse("2026-05-24T15:30:00Z"), ZoneId.of("Asia/Seoul"));
 
 	private RecommendationService recommendationService;
@@ -68,6 +71,7 @@ class RecommendationServiceTest {
 			outfitRecommendationRepository,
 			weatherSnapshotProvider,
 			recommendationEngine,
+			weeklyOutfitEngine,
 			clock
 		);
 	}
@@ -146,6 +150,23 @@ class RecommendationServiceTest {
 		assertThat(weatherSnapshot.commuteWeather()).isEqualTo(commuteWeather);
 		assertThat(weatherSnapshot.leaveWorkWeather()).isEqualTo(leaveWorkWeather);
 		assertThat(weatherSnapshot.weatherSummary().rainProbability()).isEqualTo(30);
+	}
+
+	@Test
+	void returns7DayWeeklyRecommendationForUser() {
+		User user = devUser();
+		UserProfile profile = profile(user);
+		WeatherSnapshot commuteWeather = new WeatherSnapshot(20, 21, 10, PrecipitationType.NONE, 2.0);
+		WeatherSnapshot leaveWorkWeather = new WeatherSnapshot(24, 25, 20, PrecipitationType.NONE, 2.5);
+
+		when(userProfileRepository.findByUserId(user.getId())).thenReturn(Optional.of(profile));
+		when(weatherSnapshotProvider.getTodayWeather(user, profile))
+			.thenReturn(new WeatherSnapshots(commuteWeather, leaveWorkWeather));
+
+		com.dailyoutfitweather.recommendation.dto.WeeklyRecommendationResponse response = recommendationService.getWeeklyRecommendation(user);
+
+		assertThat(response.dailyForecasts()).hasSize(7);
+		assertThat(response.dailyForecasts().get(0).outfitTags()).isNotEmpty();
 	}
 
 	private User devUser() {

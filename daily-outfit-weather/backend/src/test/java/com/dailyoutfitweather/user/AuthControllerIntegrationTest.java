@@ -1,5 +1,6 @@
 package com.dailyoutfitweather.user;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -56,6 +57,7 @@ class AuthControllerIntegrationTest {
 			.andReturn();
 
 		MockHttpSession session = (MockHttpSession)loginResult.getRequest().getSession(false);
+		assertThat(session.getMaxInactiveInterval()).isEqualTo(30 * 24 * 60 * 60);
 
 		mockMvc.perform(get("/api/me").session(session))
 			.andExpect(status().isOk())

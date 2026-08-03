@@ -16,5 +16,6 @@
 - **Styling**: CSS Modules 또는 Vanilla CSS를 사용하여 컴포넌트 간 스타일 간섭을 방지합니다.
 
 ## 3. 공통 규칙
+- **Pre-Implementation Impact Trigger**: 신규 기능 구현 및 코드 변경 전, 반드시 [`docs/impact-analysis-guide.md`](../../impact-analysis-guide.md)를 먼저 확인(`view_file`)하여 7대 사전 영향도 평가 및 대비책 수립을 완료해야 합니다.
 - **Test First**: 핵심 비즈니스 로직(추천 엔진 등)은 반드시 단위 테스트를 포함해야 합니다.
 - **Clean Code**: 함수/메서드는 하나의 일만 수행하며, 길이는 20줄을 넘지 않도록 노력합니다.

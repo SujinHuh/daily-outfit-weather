@@ -6,7 +6,7 @@ COPY gradlew settings.gradle build.gradle ./
 COPY gradle ./gradle
 COPY src ./src
 
-RUN ./gradlew bootJar --no-daemon
+RUN ./gradlew bootJar --no-daemon --rerun-tasks
 
 FROM eclipse-temurin:21-jre-alpine
 

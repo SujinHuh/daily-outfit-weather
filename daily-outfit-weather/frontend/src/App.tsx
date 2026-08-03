@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { FormEvent, KeyboardEvent } from 'react'
 import './App.css'
 
 type TransportType = 'WALK' | 'PUBLIC_TRANSPORT' | 'CAR' | 'BICYCLE'
@@ -64,6 +64,20 @@ type HourlyForecast = {
   leaveWork?: boolean
 }
 
+type DailyForecastSummary = {
+  date: string
+  dayOfWeek: string
+  minTemperature: number
+  maxTemperature: number
+  rainProbability: number
+  weatherCondition: string
+  outfitTags: string[]
+}
+
+type WeeklyRecommendationResponse = {
+  dailyForecasts: DailyForecastSummary[]
+}
+
 type ViewMode = 'loading' | 'login' | 'onboarding' | 'today' | 'settings'
 
 type FeedbackState = {
@@ -72,7 +86,7 @@ type FeedbackState = {
 }
 
 type BrowserNotificationState = NotificationPermission | 'unsupported'
-type TodayTab = 'today' | 'commute' | 'outfit' | 'items' | 'feedback'
+type TodayTab = 'today' | 'weekly' | 'commute' | 'outfit' | 'items' | 'feedback'
 
 type AuthOptionsResponse = {
   tempLoginEnabled: boolean
@@ -174,6 +188,20 @@ function App() {
   const [notificationState, setNotificationState] = useState<BrowserNotificationState>(() => currentNotificationState())
   const [notificationMessage, setNotificationMessage] = useState('')
   const [tempLoginEnabled, setTempLoginEnabled] = useState(false)
+  const [weeklyRecommendation, setWeeklyRecommendation] = useState<WeeklyRecommendationResponse | null>(null)
+  const [isWeeklyBusy, setIsWeeklyBusy] = useState(false)
+
+  async function loadWeeklyRecommendation() {
+    setIsWeeklyBusy(true)
+    try {
+      const data = await request<WeeklyRecommendationResponse>('/api/recommendations/weekly')
+      setWeeklyRecommendation(data)
+    } catch {
+      // safe fallback
+    } finally {
+      setIsWeeklyBusy(false)
+    }
+  }
 
   useEffect(() => {
     void initialize()
@@ -328,6 +356,7 @@ function App() {
       setRecommendation(nextRecommendation)
       setFeedback({ temperature: null, rain: null })
       setStatusMessage('')
+      void loadWeeklyRecommendation()
     } catch (error) {
       setStatusMessage(errorMessage(error))
     } finally {
@@ -535,6 +564,8 @@ function App() {
       <TodayDashboard
         profile={profile}
         recommendation={recommendation}
+        weeklyRecommendation={weeklyRecommendation}
+        isWeeklyBusy={isWeeklyBusy}
         todayLabel={todayLabel}
         feedback={feedback}
         isBusy={isBusy}
@@ -718,6 +749,10 @@ function ProfileEditor({
   onSubmit,
   onCancel,
 }: ProfileEditorProps) {
+  const [showAdvancedPreferences, setShowAdvancedPreferences] = useState(mode === 'settings')
+
+  const isPreferenceExpanded = mode === 'settings' || showAdvancedPreferences
+
   return (
     <form className="profile-layout" onSubmit={onSubmit}>
       <section className="form-section identity-section">
@@ -793,55 +828,75 @@ function ProfileEditor({
         />
       </section>
 
-      <section className="form-section preference-section">
+      <section className={`form-section preference-section ${mode === 'onboarding' ? 'is-optional' : ''}`}>
         <div className="section-heading">
           <span>03</span>
           <h2>취향</h2>
         </div>
-        <div className="slider-row">
-          <label>
-            <span>추위 민감도</span>
-            <strong>{form.coldSensitivity}</strong>
-          </label>
-          <input
-            type="range"
-            min="1"
-            max="5"
-            value={form.coldSensitivity}
-            onChange={(event) => onFieldChange('coldSensitivity', Number(event.target.value))}
-          />
-        </div>
-        <div className="slider-row">
-          <label>
-            <span>더위 민감도</span>
-            <strong>{form.heatSensitivity}</strong>
-          </label>
-          <input
-            type="range"
-            min="1"
-            max="5"
-            value={form.heatSensitivity}
-            onChange={(event) => onFieldChange('heatSensitivity', Number(event.target.value))}
-          />
-        </div>
-        <SegmentedControl
-          label="이동수단"
-          value={form.transportType}
-          options={transportLabels}
-          onChange={(value) => onFieldChange('transportType', value)}
-        />
-        <SegmentedControl
-          label="말투"
-          value={form.messageTone}
-          options={toneLabels}
-          onChange={(value) => onFieldChange('messageTone', value)}
-        />
-        <SegmentedControl
-          label="변경 알림"
-          value={form.changeAlertOption}
-          options={alertLabels}
-          onChange={(value) => onFieldChange('changeAlertOption', value)}
-        />
+        {mode === 'onboarding' && (
+          <div className="preference-summary">
+            <span>{transportLabels[form.transportType]}</span>
+            <span>{toneLabels[form.messageTone]}</span>
+            <span>{alertLabels[form.changeAlertOption]}</span>
+            <button
+              className="advanced-toggle"
+              type="button"
+              onClick={() => setShowAdvancedPreferences((current) => !current)}
+              aria-expanded={isPreferenceExpanded}
+              aria-controls="preference-details"
+            >
+              {isPreferenceExpanded ? '접기' : '세부 설정'}
+            </button>
+          </div>
+        )}
+        {isPreferenceExpanded && (
+          <div className="preference-details" id="preference-details">
+            <div className="slider-row">
+              <label>
+                <span>추위 민감도</span>
+                <strong>{form.coldSensitivity}</strong>
+              </label>
+              <input
+                type="range"
+                min="1"
+                max="5"
+                value={form.coldSensitivity}
+                onChange={(event) => onFieldChange('coldSensitivity', Number(event.target.value))}
+              />
+            </div>
+            <div className="slider-row">
+              <label>
+                <span>더위 민감도</span>
+                <strong>{form.heatSensitivity}</strong>
+              </label>
+              <input
+                type="range"
+                min="1"
+                max="5"
+                value={form.heatSensitivity}
+                onChange={(event) => onFieldChange('heatSensitivity', Number(event.target.value))}
+              />
+            </div>
+            <SegmentedControl
+              label="이동수단"
+              value={form.transportType}
+              options={transportLabels}
+              onChange={(value) => onFieldChange('transportType', value)}
+            />
+            <SegmentedControl
+              label="말투"
+              value={form.messageTone}
+              options={toneLabels}
+              onChange={(value) => onFieldChange('messageTone', value)}
+            />
+            <SegmentedControl
+              label="변경 알림"
+              value={form.changeAlertOption}
+              options={alertLabels}
+              onChange={(value) => onFieldChange('changeAlertOption', value)}
+            />
+          </div>
+        )}
       </section>
 
       <div className="form-actions">
@@ -955,6 +1010,8 @@ function SegmentedControl<T extends string>({ label, value, options, onChange }:
 type TodayDashboardProps = {
   profile: ProfileResponse | null
   recommendation: RecommendationResponse | null
+  weeklyRecommendation: WeeklyRecommendationResponse | null
+  isWeeklyBusy: boolean
   todayLabel: string
   feedback: FeedbackState
   isBusy: boolean
@@ -968,9 +1025,78 @@ type TodayDashboardProps = {
   onNotify: () => void
 }
 
+function WeeklyForecastSection({
+  weekly,
+  isBusy,
+}: {
+  weekly: WeeklyRecommendationResponse | null
+  isBusy: boolean
+}) {
+  if (isBusy && !weekly) {
+    return (
+      <section className="weekly-forecast-section" aria-label="이번 주 날씨 & 옷차림 예보">
+        <div className="mobile-section-heading" style={{ display: 'block', marginBottom: '8px' }}>
+          <p className="panel-kicker">☀️ 주간 예보</p>
+          <h3>이번 주(7일간) 날씨 & 옷차림 흐름</h3>
+        </div>
+        <div className="weekly-carousel">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="weekly-card" style={{ opacity: 0.6 }}>
+              <span>불러오는 중...</span>
+            </div>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  if (!weekly || !weekly.dailyForecasts || weekly.dailyForecasts.length === 0) {
+    return null
+  }
+
+  return (
+    <section className="weekly-forecast-section" aria-label="이번 주 날씨 & 옷차림 예보">
+      <div className="mobile-section-heading" style={{ display: 'block', marginBottom: '8px' }}>
+        <p className="panel-kicker">☀️ 주간 예보</p>
+        <h3>이번 주(7일간) 날씨 & 옷차림 흐름</h3>
+      </div>
+      <div className="weekly-carousel" role="region" aria-label="주간 날씨 가로 스크롤">
+        {weekly.dailyForecasts.map((item, index) => (
+          <div key={item.date || index} className="weekly-card">
+            <div className="weekly-card-header">
+              <strong className="weekly-day">{item.dayOfWeek}</strong>
+              <span className="weekly-date">{item.date ? item.date.slice(5) : ''}</span>
+            </div>
+            <div className="weekly-weather-info">
+              <span className="weekly-condition-badge">
+                {item.weatherCondition === 'RAIN' ? '🌧️' : item.weatherCondition === 'SNOW' ? '❄️' : item.weatherCondition === 'CLOUDY' ? '☁️' : '☀️'}
+              </span>
+              <div className="weekly-temp">
+                <span className="min-temp">{item.minTemperature}°</span>
+                <span className="temp-divider">/</span>
+                <span className="max-temp">{item.maxTemperature}°</span>
+              </div>
+              <small className="weekly-rain">☔ {item.rainProbability}%</small>
+            </div>
+            <div className="weekly-outfit-tags">
+              {item.outfitTags?.map((tag, tagIdx) => (
+                <span key={tagIdx} className={`outfit-chip ${tag.includes('우산') ? 'rain-chip' : ''}`}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 function TodayDashboard({
   profile,
   recommendation,
+  weeklyRecommendation,
+  isWeeklyBusy,
   todayLabel,
   feedback,
   isBusy,
@@ -984,6 +1110,21 @@ function TodayDashboard({
   onNotify,
 }: TodayDashboardProps) {
   const [activeTab, setActiveTab] = useState<TodayTab>('today')
+
+  useEffect(() => {
+    const mobileQuery = window.matchMedia('(max-width: 768px)')
+    const syncMobileTab = () => {
+      if (mobileQuery.matches && activeTab === 'commute') {
+        setActiveTab('today')
+      }
+      if (mobileQuery.matches && activeTab === 'items') {
+        setActiveTab('outfit')
+      }
+    }
+
+    mobileQuery.addEventListener('change', syncMobileTab)
+    return () => mobileQuery.removeEventListener('change', syncMobileTab)
+  }, [activeTab])
 
   if (!recommendation) {
     return (
@@ -1013,76 +1154,41 @@ function TodayDashboard({
     humidity >= 70 ? '습도가 높아 통풍 잘 되는 소재가 편해요.' : null,
     recommendation.weatherSummary.leaveWorkFeelsLike >= 28 ? '퇴근길까지 더울 수 있어 물을 챙겨요.' : null,
   ].filter((item): item is string => item != null)
-  const todayTabs: Array<{ id: TodayTab; label: string }> = [
-    { id: 'today', label: '오늘' },
-    { id: 'commute', label: '출퇴근' },
-    { id: 'outfit', label: '옷차림' },
-    { id: 'items', label: '준비물' },
-    { id: 'feedback', label: '피드백' },
+  const todayTabs: Array<{ id: TodayTab; label: string; mobilePrimary: boolean; badge?: string }> = [
+    { id: 'today', label: '오늘', mobilePrimary: true },
+    { id: 'weekly', label: '7일 예보', mobilePrimary: true, badge: '7일' },
+    { id: 'commute', label: '출퇴근', mobilePrimary: false },
+    { id: 'outfit', label: '옷차림', mobilePrimary: true },
+    { id: 'items', label: '준비물', mobilePrimary: false },
+    { id: 'feedback', label: '피드백', mobilePrimary: true },
   ]
   const outfitOptions = outfitSuggestionOptions(recommendation, humidity)
+  const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, tabId: TodayTab) => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+
+    const keyboardTabs = window.matchMedia('(max-width: 768px)').matches
+      ? todayTabs.filter((tab) => tab.mobilePrimary)
+      : todayTabs
+    const currentIndex = keyboardTabs.findIndex((tab) => tab.id === tabId)
+    if (currentIndex < 0) return
+
+    event.preventDefault()
+    if (event.key === 'Home') {
+      setActiveTab(keyboardTabs[0].id)
+      return
+    }
+    if (event.key === 'End') {
+      setActiveTab(keyboardTabs[keyboardTabs.length - 1].id)
+      return
+    }
+
+    const offset = event.key === 'ArrowRight' ? 1 : -1
+    const nextIndex = (currentIndex + offset + keyboardTabs.length) % keyboardTabs.length
+    setActiveTab(keyboardTabs[nextIndex].id)
+  }
 
   return (
     <div className="today-layout">
-      <section className="hero-panel">
-        <div className="hero-copy">
-          <p className="date-label">{todayLabel}</p>
-          <p className="outfit-label">오늘의 웨더웨어</p>
-          <h2>{recommendation.summaryMessage}</h2>
-          <ReadableReason reason={recommendation.reason} compact />
-        </div>
-        <div className={`weather-art ${isNight ? 'is-night' : ''}`} aria-hidden="true">
-          {!isCloudy && !isNight && <span className="sun" />}
-          {isNight && <NightSky />}
-          <span className="cloud cloud-a" />
-          <span className="cloud cloud-b" />
-          {isRainy && <Rainfall />}
-          {isSnowy && (
-            <>
-              <Snowfall />
-              <Snowman />
-            </>
-          )}
-          {isWindy && (
-            <>
-              <span className="wind-line wind-a" />
-              <span className="wind-line wind-b" />
-              <span className="wind-line wind-c" />
-            </>
-          )}
-          <OutfitCharacter
-            imageType={recommendation.characterImageType}
-            hasUmbrella={isRainy}
-          />
-        </div>
-        <div className="hero-outfit-summary">
-          <span>오늘 이렇게 입어요</span>
-          <strong>
-            {[recommendation.topRecommendation, recommendation.outerRecommendation].filter(Boolean).join(' + ')}
-          </strong>
-          <small>{recommendation.itemRecommendation || '추가 준비물 없이 가볍게 출발하세요.'}</small>
-        </div>
-        <div className="hero-actions">
-          <button className="secondary-button" type="button" onClick={onRefresh} disabled={isBusy}>
-            새로고침
-          </button>
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={onNotify}
-            disabled={notificationState === 'unsupported' || notificationState === 'denied'}
-          >
-            {notificationButtonLabel(notificationState)}
-          </button>
-          <button className="secondary-button" type="button" onClick={onSettings}>
-            설정 변경
-          </button>
-        </div>
-        <p className="notification-note" aria-live="polite">
-          {notificationMessage || notificationHelpText(notificationState)}
-        </p>
-      </section>
-
       <section className="tabbed-dashboard" aria-label="오늘 추천 상세">
         <div className="dashboard-tabs" role="tablist" aria-label="오늘 추천 보기">
           {todayTabs.map((tab) => (
@@ -1091,16 +1197,88 @@ function TodayDashboard({
               type="button"
               role="tab"
               aria-selected={activeTab === tab.id}
-              className={activeTab === tab.id ? 'active' : ''}
+              {...(activeTab === tab.id ? { 'aria-controls': `today-panel-${tab.id}` } : {})}
+              id={`today-tab-${tab.id}`}
+              tabIndex={activeTab === tab.id ? 0 : -1}
+              className={`${activeTab === tab.id ? 'active' : ''} ${tab.mobilePrimary ? 'mobile-primary-tab' : 'mobile-secondary-tab'}`.trim()}
               onClick={() => setActiveTab(tab.id)}
+              onKeyDown={(event) => handleTabKeyDown(event, tab.id)}
             >
-              {tab.label}
+              <span>{tab.label}</span>
+              {tab.badge && <span className="tab-badge">{tab.badge}</span>}
             </button>
           ))}
         </div>
 
         {activeTab === 'today' && (
-          <div className="tab-panel" role="tabpanel">
+          <div className="tab-panel" role="tabpanel" id="today-panel-today" aria-labelledby="today-tab-today" tabIndex={0}>
+            <section className="hero-panel">
+              <div className="hero-copy">
+                <h2 className="hero-main-message">{recommendation.summaryMessage}</h2>
+                <div className="hero-meta">
+                  <span>{todayLabel}</span>
+                  <span>오늘의 웨더웨어</span>
+                </div>
+              </div>
+              <div className={`weather-art ${isNight ? 'is-night' : ''}`} aria-hidden="true">
+                {!isCloudy && !isNight && <span className="sun" />}
+                {isNight && <NightSky />}
+                <span className="cloud cloud-a" />
+                <span className="cloud cloud-b" />
+                {isRainy && <Rainfall />}
+                {isSnowy && (
+                  <>
+                    <Snowfall />
+                    <Snowman />
+                  </>
+                )}
+                {isWindy && (
+                  <>
+                    <span className="wind-line wind-a" />
+                    <span className="wind-line wind-b" />
+                    <span className="wind-line wind-c" />
+                  </>
+                )}
+                <OutfitCharacter
+                  imageType={recommendation.characterImageType}
+                  hasUmbrella={isRainy}
+                />
+              </div>
+              <HeroReasonFacts
+                temperature={Math.max(
+                  recommendation.weatherSummary.commuteFeelsLike,
+                  recommendation.weatherSummary.leaveWorkFeelsLike,
+                )}
+                humidity={humidity}
+                hydrationNote={hydrationNote(recommendation.weatherSummary.leaveWorkFeelsLike, humidity)}
+              />
+              <div className="hero-outfit-summary">
+                <span>오늘 이렇게 입어요</span>
+                <strong>
+                  {[recommendation.topRecommendation, recommendation.outerRecommendation].filter(Boolean).join(' + ')}
+                </strong>
+                <small>{recommendation.itemRecommendation || '추가 준비물 없이 가볍게 출발하세요.'}</small>
+              </div>
+              <div className="hero-actions">
+                <button className="secondary-button low-priority-action" type="button" onClick={onRefresh} disabled={isBusy}>
+                  새로고침
+                </button>
+                <button
+                  className="primary-button"
+                  type="button"
+                  onClick={onNotify}
+                  disabled={notificationState === 'unsupported' || notificationState === 'denied'}
+                >
+                  {notificationButtonLabel(notificationState)}
+                </button>
+                <button className="secondary-button low-priority-action" type="button" onClick={onSettings}>
+                  설정 변경
+                </button>
+              </div>
+              <p className="notification-note" aria-live="polite">
+                {notificationMessage || notificationHelpText(notificationState)}
+              </p>
+            </section>
             <section className="weather-strip" aria-label="날씨 요약">
               <Metric
                 label="출근길"
@@ -1136,11 +1314,40 @@ function TodayDashboard({
             {recommendation.hourlyForecast && recommendation.hourlyForecast.length > 0 && (
               <HourlyWeather forecast={recommendation.hourlyForecast} />
             )}
+            <div className="mobile-section-heading">
+              <p className="panel-kicker">출퇴근</p>
+              <h3>나갈 때와 돌아올 때를 나눠 봐요.</h3>
+            </div>
+            <section className="commute-grid mobile-merged-panel" aria-label="출퇴근 날씨 요약">
+              <CommuteCard
+                label="출근길"
+                temperature={recommendation.weatherSummary.commuteFeelsLike}
+                description={temperatureDescription(recommendation.weatherSummary.commuteFeelsLike)}
+                humidity={humidity}
+                rainProbability={recommendation.weatherSummary.rainProbability}
+                windSpeed={recommendation.weatherSummary.windSpeed}
+              />
+              <CommuteCard
+                label="퇴근길"
+                temperature={recommendation.weatherSummary.leaveWorkFeelsLike}
+                description={temperatureDescription(recommendation.weatherSummary.leaveWorkFeelsLike)}
+                humidity={humidity}
+                rainProbability={recommendation.weatherSummary.rainProbability}
+                windSpeed={recommendation.weatherSummary.windSpeed}
+              />
+            </section>
+            <WeeklyForecastSection weekly={weeklyRecommendation} isBusy={isWeeklyBusy} />
+          </div>
+        )}
+
+        {activeTab === 'weekly' && (
+          <div className="tab-panel" role="tabpanel" id="today-panel-weekly" aria-labelledby="today-tab-weekly" tabIndex={0}>
+            <WeeklyForecastSection weekly={weeklyRecommendation} isBusy={isWeeklyBusy} />
           </div>
         )}
 
         {activeTab === 'commute' && (
-          <div className="tab-panel" role="tabpanel">
+          <div className="tab-panel" role="tabpanel" id="today-panel-commute" aria-labelledby="today-tab-commute" tabIndex={0}>
             <section className="commute-grid" aria-label="출퇴근 날씨">
               <CommuteCard
                 label="출근길"
@@ -1162,11 +1369,12 @@ function TodayDashboard({
             {recommendation.hourlyForecast && recommendation.hourlyForecast.length > 0 && (
               <HourlyWeather forecast={recommendation.hourlyForecast} />
             )}
+            <WeeklyForecastSection weekly={weeklyRecommendation} isBusy={isWeeklyBusy} />
           </div>
         )}
 
         {activeTab === 'outfit' && (
-          <div className="tab-panel" role="tabpanel">
+          <div className="tab-panel" role="tabpanel" id="today-panel-outfit" aria-labelledby="today-tab-outfit" tabIndex={0}>
             <section className="recommendation-grid" aria-label="오늘 추천">
               <RecommendationBlock label="상의" value={recommendation.topRecommendation} tone="green" />
               <RecommendationBlock label="하의/외투" value={recommendation.outerRecommendation || '없음'} tone="blue" />
@@ -1195,11 +1403,41 @@ function TodayDashboard({
               <h3>{recommendation.summaryMessage}</h3>
               <ReadableReason reason={recommendation.reason} />
             </section>
+            <section className="prep-panel mobile-merged-panel" aria-label="준비물 요약">
+              <div>
+                <p className="panel-kicker">준비물</p>
+                <h3>날씨에 따라 이렇게 준비해요.</h3>
+              </div>
+              <div className="prep-list">
+                {itemList.map((item) => <span key={item}>{item}</span>)}
+              </div>
+              {weatherPrepItems.length > 0 && (
+                <ul className="prep-notes">
+                  {weatherPrepItems.map((item) => <li key={item}>{item}</li>)}
+                </ul>
+              )}
+            </section>
+            <div className="mobile-merged-panel mobile-items-extra">
+              <section className="sun-care-panel" aria-label="자외선 대비 안내">
+                <div>
+                  <p className="panel-kicker">햇빛 대비</p>
+                  <h3>자외선이 높은 날에는 햇빛 준비물도 알려드릴게요.</h3>
+                  <p>별도 자외선 API 연동 후, 필요한 날에만 최대 3개를 우선순위로 추천합니다.</p>
+                </div>
+                <div className="sun-care-items" aria-label="자외선 대비 준비물">
+                  <span>선크림</span>
+                  <span>선글라스</span>
+                  <span>양산</span>
+                </div>
+              </section>
+              <MascotGallery />
+            </div>
+            <WeeklyForecastSection weekly={weeklyRecommendation} isBusy={isWeeklyBusy} />
           </div>
         )}
 
         {activeTab === 'items' && (
-          <div className="tab-panel" role="tabpanel">
+          <div className="tab-panel" role="tabpanel" id="today-panel-items" aria-labelledby="today-tab-items" tabIndex={0}>
             <section className="prep-panel" aria-label="준비물">
               <div>
                 <p className="panel-kicker">준비물</p>
@@ -1231,7 +1469,7 @@ function TodayDashboard({
         )}
 
         {activeTab === 'feedback' && (
-          <div className="tab-panel" role="tabpanel">
+          <div className="tab-panel" role="tabpanel" id="today-panel-feedback" aria-labelledby="today-tab-feedback" tabIndex={0}>
             <section className="feedback-panel">
               <div>
                 <p className="panel-kicker">피드백</p>
@@ -1455,10 +1693,47 @@ function Metric({ label, value, description, detailLabel }: { label: string; val
   return (
     <div className="metric">
       <span>{label}</span>
-      <strong>{description}</strong>
-      <p>{detailLabel} {value}</p>
+      <strong className="metric-value">{value}</strong>
+      <p>
+        <b>{description}</b>
+        <small>{detailLabel}</small>
+      </p>
     </div>
   )
+}
+
+function HeroReasonFacts({
+  temperature,
+  humidity,
+  hydrationNote,
+}: {
+  temperature: number
+  humidity: number
+  hydrationNote: string
+}) {
+  return (
+    <section className="hero-reason-facts" aria-label="추천 핵심 이유">
+      <div>
+        <span>체감</span>
+        <strong>{temperature}°</strong>
+      </div>
+      <div>
+        <span>습도</span>
+        <strong>{humidity}%</strong>
+      </div>
+      <div>
+        <span>수분</span>
+        <strong>{hydrationNote}</strong>
+      </div>
+    </section>
+  )
+}
+
+function hydrationNote(leaveWorkFeelsLike: number, humidity: number) {
+  if (leaveWorkFeelsLike >= 28 || humidity >= 70) {
+    return '보충'
+  }
+  return '챙기기'
 }
 
 function ReadableReason({ reason, compact = false }: { reason: string; compact?: boolean }) {
@@ -1485,7 +1760,7 @@ function reasonParts(reason: string) {
       if (text.includes('추천 기준')) {
         const match = text.match(/(추천 기준 체감온도는 \d+도입니다\.?)(.*)/)
         return {
-          icon: '🌡️',
+          icon: '온도',
           emphasis: match?.[1] ?? text,
           rest: match?.[2]?.trim() ?? '',
           text,
@@ -1494,7 +1769,7 @@ function reasonParts(reason: string) {
       if (text.includes('습도')) {
         const match = text.match(/(습도 \d+%)(.*)/)
         return {
-          icon: '💧',
+          icon: '습도',
           emphasis: match?.[1] ?? '습도 반영',
           rest: match?.[2]?.trim() ?? text,
           text,
@@ -1502,14 +1777,14 @@ function reasonParts(reason: string) {
       }
       if (text.includes('수분') || text.includes('물')) {
         return {
-          icon: '🥤',
+          icon: '수분',
           emphasis: '수분 보충',
           rest: text,
           text,
         }
       }
       return {
-        icon: '✨',
+        icon: '정보',
         emphasis: text,
         rest: '',
         text,
@@ -1566,7 +1841,7 @@ function outfitSuggestionOptions(recommendation: RecommendationResponse, humidit
       label: '기본 상의',
       value: recommendation.topRecommendation || '반팔티',
       note: '가장 먼저 고를 옷이에요.',
-      icon: '👕',
+      icon: '상의',
     },
   ]
 
@@ -1576,13 +1851,13 @@ function outfitSuggestionOptions(recommendation: RecommendationResponse, humidit
         label: '시원한 대안',
         value: '린넨 셔츠',
         note: '습한 날 통풍이 좋아요.',
-        icon: '🧺',
+        icon: '대안',
       },
       {
         label: '소재 추천',
         value: '얇은 면/기능성 티',
         note: '땀이 나도 답답함이 덜해요.',
-        icon: '🌬️',
+        icon: '소재',
       },
     )
   }
@@ -1592,7 +1867,7 @@ function outfitSuggestionOptions(recommendation: RecommendationResponse, humidit
       label: '하의/외투',
       value: recommendation.outerRecommendation,
       note: '퇴근길까지 고려한 선택이에요.',
-      icon: '🩳',
+      icon: '외투',
     })
   }
 
